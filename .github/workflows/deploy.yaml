@@ -14,11 +14,12 @@ jobs:
         run: |
           env
           mkdir -p ~/.ssh
-          echo "${{ secrets.PUBLIC_KEY }}" > ~/.ssh/id_rsa
+          echo "${{ secrets.PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
       - name: Deploy to server
         run: |
+          env
           echo "Starting deployment..."
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.USER }}@${{ secrets.HOST }} "cd ${{ secrets.PATH }} && git pull && npm start"
           echo "Deployment completed."
