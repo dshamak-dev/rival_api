@@ -36,5 +36,5 @@ jobs:
         port: 22
         passphrase: ${{ secrets.PASSPHRASE }}
         target: ${{ secrets.PATH }}
-        source: dist/*
+        source: "dist.zip"
 
