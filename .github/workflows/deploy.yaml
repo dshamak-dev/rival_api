@@ -27,10 +27,13 @@ jobs:
         path: ./dist
 
     - name: Deploy to Production
-      uses: actions/download-artifact@v2
+      uses: appleboy/ssh-action@v1.0.3
       with:
-        name: dist
-      run: |
-        # Add your deployment commands here
-        echo "Deploying to production..."
-        scp -r ./dist/* shamak@shamak.ftp.tools:/home/shamak/shamak.tech/api/
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USER }}
+        key: ${{ secrets.PRIVATE_KEY }}
+        port: 22
+        fingerprint: ${{ secrets.FINGERPRINT }}
+        script: |
+          whoami
+          ls -al
