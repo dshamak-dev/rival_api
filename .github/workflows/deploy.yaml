@@ -27,6 +27,7 @@ jobs:
         name: dist
         path: |
           ./dist/
+          ./public
           ./package.json
       
     - uses: actions/download-artifact@v4
