@@ -11,7 +11,5 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: ls
-      - run: ssh ${{ secrets.DEPLOY_ADDRESS }}
-      - run: ${{ secrets.DEPLOY_PASSWORD }}
       - run: scp -r ./dist ${{ secrets.DEPLOY_ADDRESS }}:${{ secrets.DEPLOY_PATH }}
       - run: ssh ${{ secrets.DEPLOY_ADDRESS }} "cd ${{ secrets.DEPLOY_PATH }} && npm install && npm start"
