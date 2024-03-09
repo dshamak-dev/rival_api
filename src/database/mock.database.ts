@@ -1,7 +1,8 @@
 import fs from "fs";
 import path from "path";
 import { randomId } from "../utils/random.utils";
-import { PayloadDTO } from "@/services/pvp/model";
+import { PayloadDTO } from "src/services/pvp/model";
+
 
 const cachePath = path.join(__dirname, "./cache.json");
 let mockDB: Record<string, any> = {};

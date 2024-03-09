@@ -1,4 +1,4 @@
-import { DatabaseMockModel } from "@/database/mock.database";
+import { DatabaseMockModel } from "../../database/mock.database";
 
 export interface PayloadDTO {
 

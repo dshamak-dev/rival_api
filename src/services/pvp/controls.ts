@@ -1,4 +1,3 @@
-import { randomId } from "@/utils/random.utils";
 import model, { PayloadDTO, ModelDTO } from "./model";
 
 // create session - Example: new Session({ rounds: 3, connectTimeout: "15s" })

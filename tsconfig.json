@@ -18,10 +18,7 @@
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "importHelpers": true,
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["src/*"],
-    }
+    "baseUrl": "."
   },
   "include": ["./src/**/*.ts", "server.ts"],
   "exclude": ["node_modules/**/*", "dist"],

@@ -1,5 +1,5 @@
 import pvp from "./pvp";
-import auth from "@/services/auth";
+import auth from "./auth";
 
 export default {
   pvp,
