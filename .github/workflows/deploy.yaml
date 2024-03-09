@@ -33,7 +33,7 @@ jobs:
         path: distfiles
 
     - name: Deploy to Production
-      uses: appleboy/ssh-action@v1.0.3
+      uses: appleboy/ssh-action@v0.1.7
       with:
       
         host: ${{ secrets.HOST }}
@@ -41,7 +41,5 @@ jobs:
         key: ${{ secrets.PRIVATE_KEY }}
         port: 22
         passphrase: ${{ secrets.PASSPHRASE }}
-        source: "distfiles/*"
+        source: distfiles/*
         target: ${{ secrets.PATH }}
-        script: |
-          echo "DONE" 
