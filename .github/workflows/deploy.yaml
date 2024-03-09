@@ -1,6 +1,7 @@
 name: Deploy to Production
 
-on: push
+on: [push, workflow_dispatch]
+
 
 jobs:
   deploy:
@@ -35,5 +36,4 @@ jobs:
         port: 22
         fingerprint: ${{ secrets.FINGERPRINT }}
         script: |
-          whoami
-          ls -al
+          mkdir here 
