@@ -37,4 +37,4 @@ jobs:
         port: 22
         passphrase: ${{ secrets.PASSPHRASE }}
         script: |
-          cd ${{ secrets.PATH }} && mkdir here 
+          mkdir here 
