@@ -22,10 +22,15 @@ jobs:
         npm run build
 
     - name: Upload to Production
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@4
       with:
         name: dist
         path: ./dist
+      
+    - uses: actions/download-artifact@v4
+      with:
+        name: dist
+        path: distfiles
 
     - name: Deploy to Production
       uses: appleboy/ssh-action@v1.0.3
