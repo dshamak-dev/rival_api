@@ -1,0 +1,36 @@
+name: Node CI
+
+on: [push, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '16.x'
+    - name: Install npm dependencies
+      run: npm install
+    - name: Run build task
+      run: npm run build --if-present
+    - name: Setup SSH
+      run: |
+          env
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p 22 ${{ secrets.SSH_IP }} >> ~/.ssh/known_hosts
+          sudo apt-get install sshpass
+      - name: copy builds to server
+        run: |
+          sshpass -p '${{ secrets.RASSWORD }}' ssh -v -o StrictHostKeyChecking=no ${{ secrets.USER }}@${{ secrets.HOST }} <<'ENDSSH'
+          cd ${{ secrets.APP_PATH }}
+          git pull
+          docker stop ${{ secrets.APP_NAME }}
+          docker system prune -f
+          export ${{ secrets.API_KEY_NAME }}=${{ secrets.API_KEY }}
+          make deploy_headless
+          ENDSSH
