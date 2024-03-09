@@ -1,0 +1,14 @@
+on: push
+name: Deploy on Commit test
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: node:16
+    steps:
+      - run: node -v
+      - uses: actions/chekout@v3
+      - run: npm install
+      - run: npm test
+      - run: npm run build
+      - run: scp -r ./dist user@154.49.136.221:/rival-api
+      - run: ssh user@154.49.136.221 "cd /rival-api && npm install && npm start"
