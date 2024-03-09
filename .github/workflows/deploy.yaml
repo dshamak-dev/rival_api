@@ -70,4 +70,3 @@ jobs:
           cd /home/shamak/shamak.tech/api/
           cp -r ./distfiles/* ./
           rm -rf ./distfiles
-          npm start
