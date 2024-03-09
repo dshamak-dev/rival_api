@@ -8,6 +8,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Clear caches
+        uses: easimon/wipe-cache@main
+        with:
+          dry-run: 'true'
+
     - name: Checkout Repository
       uses: actions/checkout@v2
 
