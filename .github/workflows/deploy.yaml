@@ -21,17 +21,6 @@ jobs:
         npm install
         npm run build
 
-    - name: Upload to Production
-      uses: actions/upload-artifact@v4
-      with:
-        name: dist
-        path: ./dist
-      
-    - uses: actions/download-artifact@v4
-      with:
-        name: dist
-        path: distfiles
-
     - name: Deploy to Production
       uses: appleboy/ssh-action@v1.0.3
       with:
@@ -41,7 +30,7 @@ jobs:
         key: ${{ secrets.PRIVATE_KEY }}
         port: 22
         passphrase: ${{ secrets.PASSPHRASE }}
-        source: distfiles/*
+        source: "dist/*"
         target: ${{ secrets.PATH }}
         script: |
           echo "DONE" 
