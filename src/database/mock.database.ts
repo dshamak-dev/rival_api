@@ -4,8 +4,11 @@ import { randomId } from "../utils/random.utils";
 import { PayloadDTO } from "@/services/pvp/model";
 
 const cachePath = path.join(__dirname, "./cache.json");
-const mockDB: Record<string, any> =
-  JSON.parse(fs.readFileSync(cachePath).toString()) || {};
+let mockDB: Record<string, any> = {};
+
+if (fs.existsSync(cachePath)) {
+  mockDB = JSON.parse(fs.readFileSync(cachePath, { flag: "" })?.toString()) || {};
+}
 
 type QueryType = Record<string, any>;
 type PayloadType = Record<string, any>;
