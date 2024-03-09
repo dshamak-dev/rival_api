@@ -40,8 +40,8 @@ jobs:
         key: ${{ secrets.PRIVATE_KEY }}
         port: 22
         passphrase: ${{ secrets.PASSPHRASE }}
-        source: "./dist/*"
-        target: ${{ secrets.PATH }}
+        source: distfiles/*
+        target: "/home/shamak/shamak.tech/api/"
 
     - name: Deploy to Production
       uses: appleboy/ssh-action@v0.1.7
