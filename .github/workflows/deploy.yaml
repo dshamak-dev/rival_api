@@ -34,6 +34,6 @@ jobs:
         key: ${{ secrets.PRIVATE_KEY }}
         port: 22
         passphrase: ${{ secrets.PASSPHRASE }}
-        target: ${{ secrets.PATH }}
-        source: "/dist/*"
+        script: |
+          cd ${{ secrets.PATH }} && mkdir here
 
