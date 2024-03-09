@@ -30,7 +30,7 @@ jobs:
         key: ${{ secrets.PRIVATE_KEY }}
         port: 22
         passphrase: ${{ secrets.PASSPHRASE }}
-        source: "dist/*"
+        source: "./dist/*"
         target: ${{ secrets.PATH }}
         script: |
           echo "DONE" 
