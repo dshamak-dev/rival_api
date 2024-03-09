@@ -30,11 +30,11 @@ jobs:
     - name: Deploy to Production
       uses: appleboy/ssh-action@v1.0.3
       with:
-      
         host: ${{ secrets.HOST }}
         username: ${{ secrets.USER }}
         key: ${{ secrets.PRIVATE_KEY }}
         port: 22
         passphrase: ${{ secrets.PASSPHRASE }}
-        script: |
-          mkdir here 
+        target: ${{ secrets.PATH }}
+        source: dist/*
+
