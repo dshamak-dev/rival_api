@@ -11,5 +11,5 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: ls
-      - run: scp -r ./dist rival-clash@154.49.136.221:/home/dshamak/
-      - run: ssh rival-clash@154.49.136.221 "cd /home/dshamak/ && npm install && npm start"
+      - run: scp -r ./dist ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_IP }}:${{ secrets.DEPLOY_PATH }}
+      - run: ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_IP }} "cd ${{ secrets.DEPLOY_PATH }} && npm install && npm start"
