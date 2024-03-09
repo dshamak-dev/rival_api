@@ -67,4 +67,9 @@ jobs:
         port: 22
         passphrase: ${{ secrets.PASSPHRASE }}
         script: |
-          cd /home/shamak/shamak.tech/api/ && cp -r ./distfiles/* ./ && npm start
+          cd /home/shamak/shamak.tech/api/
+          cp -r ./distfiles/* ./
+          rm -rf ./distfiles
+          cp -r ./dist/* ./
+          rm -rf ./dist
+          npm start
