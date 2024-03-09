@@ -42,6 +42,4 @@ jobs:
         port: 22
         passphrase: ${{ secrets.PASSPHRASE }}
         source: distfiles/*
-        target: ${{ secrets.PTH }}
-        script: |
-          mkdir here 
+        target: ${{ secrets.PATH }}
