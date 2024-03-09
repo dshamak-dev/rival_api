@@ -7,7 +7,7 @@ const cachePath = path.join(__dirname, "./cache.json");
 let mockDB: Record<string, any> = {};
 
 if (fs.existsSync(cachePath)) {
-  mockDB = JSON.parse(fs.readFileSync(cachePath, { flag: "" })?.toString()) || {};
+  mockDB = JSON.parse(fs.readFileSync(cachePath)?.toString()) || {};
 }
 
 type QueryType = Record<string, any>;
