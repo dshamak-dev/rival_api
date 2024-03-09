@@ -26,13 +26,13 @@ jobs:
       with:
         name: dist
         path: |
-          ./dist/*
+          ./dist
           ./package.json
       
     - uses: actions/download-artifact@v4
       with:
         name: dist
-        path: distfiles
+        path: distfiles/*
     
     - name: Remove Old Deploy
       uses: appleboy/ssh-action@v0.1.7
