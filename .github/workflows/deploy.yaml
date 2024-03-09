@@ -6,7 +6,7 @@ jobs:
     container: node:16
     steps:
       - run: node -v
-      - uses: actions/chekout@v3
+      - uses: actions/checkout@v3
       - run: npm install
       - run: npm test
       - run: npm run build
