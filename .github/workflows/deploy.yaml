@@ -8,13 +8,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Clear caches
-      uses: easimon/wipe-cache@main
-      with:
-        dry-run: 'true'
-
     - name: Checkout Repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v2
 
     - name: Set up Node.js
       uses: actions/setup-node@v3
@@ -26,14 +21,20 @@ jobs:
         npm install
         npm run build
 
+    - name: Upload to Production
+      uses: actions/upload-artifact@v2
+      with:
+        name: dist
+        path: ./dist
+
     - name: Deploy to Production
       uses: appleboy/ssh-action@v1.0.3
       with:
+      
         host: ${{ secrets.HOST }}
         username: ${{ secrets.USER }}
         key: ${{ secrets.PRIVATE_KEY }}
         port: 22
         passphrase: ${{ secrets.PASSPHRASE }}
         script: |
-          cd ${{ secrets.PATH }} && mkdir here
-
+          cd ${{ secrets.PATH }} && mkdir here 
