@@ -12,13 +12,13 @@ jobs:
         uses: actions/checkout@v4
       - name: Set up SSH key
         uses: ilCollez/ssh-scp-deploy@v1.3.0
-          with:
-              host: ${{ secrets.HOST }} # "example.com"
-              username: ${{ secrets.USER }} # "user"
-              key: ${{ secrets.PRIVATE_KEY }} # you can also use key-path: "~/.ssh/id_rsa"
-              passphrase: ${{ secrets.PASSPHRASE }} # "passphrase"
-              files: |
-                  *.json
-                  public
-                  dist
-              remote-path: ${{ secrets.PATH }}
+        with:
+            host: ${{ secrets.HOST }} # "example.com"
+            username: ${{ secrets.USER }} # "user"
+            key: ${{ secrets.PRIVATE_KEY }} # you can also use key-path: "~/.ssh/id_rsa"
+            passphrase: ${{ secrets.PASSPHRASE }} # "passphrase"
+            files: |
+                *.json
+                public
+                dist
+            remote-path: ${{ secrets.PATH }}
