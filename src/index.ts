@@ -1,13 +1,9 @@
-import * as dotenv from "dotenv";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 
 import docsRouter from "./swagger";
 import services from "./services/";
-
-//App Varaibles
-dotenv.config();
 
 import { initialize } from "./core/repository";
 

@@ -5,7 +5,7 @@ import express from "express";
 
 const isProd = !!process.env.production;
 
-const envPath = path.join(__dirname, `../${isProd ? '' : 'local'}.env`);
+const envPath = path.join(__dirname, `../${isProd ? 'prod' : 'local'}.env`);
 
 config({ path: envPath });
 

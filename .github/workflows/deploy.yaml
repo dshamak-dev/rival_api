@@ -26,10 +26,10 @@ jobs:
       with:
         name: dist
         path: |
+          ./prod.env
           ./dist/
           ./public
           ./package.json
-          ./.env
       
     - uses: actions/download-artifact@v4
       with:
