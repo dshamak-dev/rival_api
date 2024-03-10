@@ -3,7 +3,11 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 
-import docsRouter from './swagger';
+import { initialize, isConnected } from "./core/repository";
+
+initialize();
+
+import docsRouter from "./swagger";
 import services from "./services/";
 
 //App Varaibles

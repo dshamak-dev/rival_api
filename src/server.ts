@@ -3,16 +3,20 @@ import path from "path";
 import fs from "fs";
 import express from "express";
 
-config();
+const isProd = !!process.env.production;
 
-import app, { serviceProcess } from "./src";
+const envPath = path.join(__dirname, `../${isProd ? '' : 'local'}.env`);
+
+config({ path: envPath });
+
+import app, { serviceProcess } from ".";
 
 app.use(express.static("public"));
 
 const PORT = process.env.PORT || 3000;
 
-const rootFile = path.join(__dirname, "./public/index.html");
-const notFoundFile = path.join(__dirname, "./public/404.html");
+const rootFile = path.join(__dirname, "../public/index.html");
+const notFoundFile = path.join(__dirname, "../public/404.html");
 
 serviceProcess.finally(() => {
   app.get("/", (req, res) => {
