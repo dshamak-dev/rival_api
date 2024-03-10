@@ -3,15 +3,15 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 
-import { initialize, isConnected } from "./core/repository";
-
-initialize();
-
 import docsRouter from "./swagger";
 import services from "./services/";
 
 //App Varaibles
 dotenv.config();
+
+import { initialize } from "./core/repository";
+
+initialize();
 
 //intializing the express app
 const app = express();
