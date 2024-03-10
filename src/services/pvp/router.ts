@@ -30,7 +30,7 @@ router.get(rootPath + '/', async (req, res) => {
 
   const result = await findSession(params);
 
-  res.json(result).status(200).end();
+  res.json(result).status(200);
 });
 
 // update session
