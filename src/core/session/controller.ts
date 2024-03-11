@@ -1,5 +1,3 @@
-import { SessionDTO } from "./model";
-import { UserDTO } from "../user/user.model";
 import repository from './repository';
 
 export async function create<T, P>(payload: T): Promise<P> {
@@ -11,15 +9,13 @@ export async function find<T>(query: any): Promise<T[]> {
 }
 
 export async function findOne<T>(query: any): Promise<T> {
-  return null;
+  return repository.findOne(query);
 }
 
-export async function update<T>(query: any, payload: any): Promise<T[]> {
-  return null;
+export async function update<T>(query: any, payload: any): Promise<any> {
+  return repository.findAndUpdate(query, payload);
 }
 
 export async function updateOne<T>(query: any, payload: any): Promise<T> {
-  return null;
+  return repository.findOneAndUpdate(query, payload);
 }
-
-export async function connect(sessionId: SessionDTO["_id"], userId: UserDTO["_id"]) {}
