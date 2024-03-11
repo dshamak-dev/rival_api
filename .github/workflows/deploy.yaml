@@ -1,7 +1,9 @@
 name: Deploy to Production
 
-on: [push, workflow_dispatch]
-
+on:
+  push:
+    branches: master
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -75,6 +77,6 @@ jobs:
 
     - name: Clear artifact
       uses: geekyeggo/delete-artifact@v4
-        with:
-            name: dist
-            failOnError: false
+      with:
+          name: dist
+          failOnError: false
