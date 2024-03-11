@@ -1,5 +1,4 @@
 import { SessionDTO, SessionPayloadDTO } from "src/core/session/model";
-import { DatabaseMockModel } from "../../database/mock.database";
 import { UserDTO } from "src/core/user/user.model";
 import { TransactionDTO } from "src/core/transaction/transaction.model";
 
@@ -29,7 +28,3 @@ export interface VersusResultDTO {
   winners: UserDTO["_id"][];
   prizeTotal: number;
 }
-
-const model = new DatabaseMockModel("session");
-
-export default model;
