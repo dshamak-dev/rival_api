@@ -1,11 +1,15 @@
 import fs from "fs";
 import path from "path";
 import { randomId } from "../utils/random.utils";
-import { PayloadDTO } from "@/services/pvp/model";
+import { PayloadDTO } from "src/services/versus/versus.model";
+
 
 const cachePath = path.join(__dirname, "./cache.json");
-const mockDB: Record<string, any> =
-  JSON.parse(fs.readFileSync(cachePath).toString()) || {};
+let mockDB: Record<string, any> = {};
+
+if (fs.existsSync(cachePath)) {
+  mockDB = JSON.parse(fs.readFileSync(cachePath)?.toString()) || {};
+}
 
 type QueryType = Record<string, any>;
 type PayloadType = Record<string, any>;

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Project Rivals</title>
+    <link rel="shortcut icon" href="./favicon.ico" type="image/x-icon" />
+    <link rel="shortcut icon" href="./favicon.png" type="image/png" />
+    <style>
+      :root {
+        --base-font: 22px;
+        --bg: 33, 33, 33;
+        --text: 200, 200, 200;
+      }
+
+      html {
+        font-size: var(--base-font);
+      }
+
+      body {
+        margin: 0;
+        padding: 10vh 5vh;
+        min-height: 100vh;
+        min-height: 100dvh;
+        color: rgb(var(--text));
+        background-color: rgb(var(--bg));
+        overflow: hidden;
+        clear: both;
+      }
+
+      .description {
+        max-width: 60vw;
+        margin: 0 auto;
+        text-align: justify;
+      }
+
+      .text-center {
+        text-align: center;
+      }
+      .text-smaller {
+        font-size: 0.85em;
+      }
+
+      a {
+        color: #deb887;
+      }
+
+      @media screen and (max-width: 420px) {
+        :root {
+          --base-font: 18px;
+        }
+
+        .description {
+          max-width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <article class="text-center">
+      <h1>Welcome, rivals!</h1>
+      <section class="description">
+        <p>
+          Introducing Rival Platform - your go-to destination for immersive and
+          competitive experiences. Engage in thrilling rivalries harness
+          cutting-edge features, and elevate your online presence.
+        </p>
+        <p>
+          Whether gaming, trading, or connecting, Rival offers an unparalleled
+          platform where ambition meets opportunity, forging a community driven
+          by passion and competition.
+        </p>
+        <p>Good luck and have fun!</p>
+        <p class="text-smaller">Regards,<br/>Admin</p>
+        <p>P.S. Here is a <a href="/docs">link to API docs</a></p>
+      </section>
+    </article>
+  </body>
+</html>

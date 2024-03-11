@@ -1,7 +1,7 @@
-import pvp from "./pvp";
-import auth from "@/services/auth";
+import versus from "./versus";
+import auth from "./auth";
 
 export default {
-  pvp,
+  versus,
   auth,
 };

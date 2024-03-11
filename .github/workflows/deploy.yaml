@@ -1,15 +1,81 @@
-on: push
-name: Deploy on Commit test
+name: Deploy to Production
+
+on:
+  push:
+    branches: master
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    container: node:16
+
     steps:
-      - run: node -v
-      - uses: actions/checkout@v3
-      - run: npm install
-      - run: npm test
-      - run: npm run build
-      - run: ls
-      - run: scp -r ./dist rival-clash@154.49.136.221:/home/dshamak/
-      - run: ssh rival-clash@154.49.136.221 "cd /home/dshamak/ && npm install && npm start"
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20.x'
+
+    - name: Install Dependencies
+      run: |
+        npm install
+        npm run build
+
+    - name: Upload to Production
+      uses: actions/upload-artifact@v4
+      with:
+        name: dist
+        path: |
+          ./prod.env
+          ./dist/
+          ./public
+          ./package.json
+      
+    - uses: actions/download-artifact@v4
+      with:
+        name: dist
+        path: distfiles
+    
+    - name: Remove Old Deploy
+      uses: appleboy/ssh-action@v0.1.7
+      with:
+      
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USER }}
+        key: ${{ secrets.PRIVATE_KEY }}
+        port: 22
+        passphrase: ${{ secrets.PASSPHRASE }}
+        script: |
+          rm -rf /home/shamak/shamak.tech/api/*
+      
+    - name: Copy to Production
+      uses: appleboy/scp-action@master
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USER }}
+        key: ${{ secrets.PRIVATE_KEY }}
+        port: 22
+        passphrase: ${{ secrets.PASSPHRASE }}
+        source: distfiles/*
+        target: "/home/shamak/shamak.tech/api/"
+
+    - name: Deploy to Production
+      uses: appleboy/ssh-action@v0.1.7
+      with:
+      
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USER }}
+        key: ${{ secrets.PRIVATE_KEY }}
+        port: 22
+        passphrase: ${{ secrets.PASSPHRASE }}
+        script: |
+          cd /home/shamak/shamak.tech/api/
+          cp -r ./distfiles/* ./
+          rm -rf ./distfiles
+
+    - name: Clear artifact
+      uses: geekyeggo/delete-artifact@v4
+      with:
+          name: dist
+          failOnError: false
