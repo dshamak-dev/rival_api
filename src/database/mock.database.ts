@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { randomId } from "../utils/random.utils";
-import { PayloadDTO } from "src/services/pvp/model";
+import { PayloadDTO } from "src/services/versus/versus.model";
 
 
 const cachePath = path.join(__dirname, "./cache.json");

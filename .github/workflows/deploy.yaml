@@ -72,3 +72,9 @@ jobs:
           cd /home/shamak/shamak.tech/api/
           cp -r ./distfiles/* ./
           rm -rf ./distfiles
+
+    - name: Clear artifact
+      uses: geekyeggo/delete-artifact@v4
+        with:
+            name: dist
+            failOnError: false

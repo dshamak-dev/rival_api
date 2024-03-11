@@ -1,6 +1,6 @@
 import { Repository } from "src/core/repository/model";
-import { SessionModel } from "src/core/session/model";
+import { model } from "src/core/session/model";
 
-const _sessionRepository = new Repository(SessionModel);
+const _repo = new Repository(model);
 
-export default _sessionRepository; 
+export default _repo; 

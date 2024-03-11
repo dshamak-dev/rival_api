@@ -22,10 +22,14 @@ function connect() {
 
 mongoose.connection.on("disconnected", () => {
   isConnected = false;
-  console.log("mongoose disconnected");
+
+  const date = new Date().toLocaleString();
+  console.log("mongoose disconnected", date);
 });
 
 mongoose.connection.on("connected", () => {
   isConnected = true;
-  console.log("mongoose connected");
+
+  const date = new Date().toLocaleString();
+  console.log("mongoose connected", date);
 });
