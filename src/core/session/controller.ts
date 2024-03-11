@@ -1,5 +1,5 @@
-import { SessionDTO } from "src/core/session/model";
-import { UserDTO } from "src/core/user/user.model";
+import { SessionDTO } from "./model";
+import { UserDTO } from "../user/user.model";
 import repository from './repository';
 
 export async function create<T, P>(payload: T): Promise<P> {

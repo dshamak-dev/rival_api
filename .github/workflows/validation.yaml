@@ -1,0 +1,24 @@
+name: Validate before Merge
+
+on:
+  pull_request:
+    types: [opened]
+  branches:
+      - 'release/v[0-9].[0-9]'
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20.x'
+
+    - name: Test and Build
+      run: |
+        npm install
+        npm test
+        npm run build

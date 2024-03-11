@@ -1,7 +1,7 @@
-import { createRepositoryModel } from "src/core/repository/controller";
-import schema from "src/core/session/schema";
-import { TransactionDTO } from "src/core/transaction/transaction.model";
-import { UserDTO } from "src/core/user/user.model";
+import { createRepositoryModel } from "core/repository/controller";
+import schema from "core/session/schema";
+import { TransactionDTO } from "core/transaction/transaction.model";
+import { UserDTO } from "core/user/user.model";
 
 export interface SessionPayloadDTO {
   type: SessionType;

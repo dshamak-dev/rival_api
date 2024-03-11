@@ -1,6 +1,6 @@
-import * as sessionControls from "src/core/session/controller";
+import * as sessionControls from "core/session/controller";
 import { VersusDTO, VersusPayloadDTO } from "./versus.model";
-import { SessionType } from "src/core/session/model";
+import { SessionType } from "core/session/model";
 
 export async function create(payload: VersusPayloadDTO): Promise<VersusDTO> {
   const { config, ownerId, ...other } = payload;

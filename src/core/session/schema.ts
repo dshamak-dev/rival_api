@@ -1,4 +1,4 @@
-import { RepositorySchema } from "src/core/repository/model";
+import { RepositorySchema } from "core/repository/model";
 
 const schema: RepositorySchema = {
   capacity: {

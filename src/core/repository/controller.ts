@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { RepositorySchema } from "src/core/repository/model";
+import { RepositorySchema } from "core/repository/model";
 
 export function createRepositoryModel(name: string, schema: RepositorySchema) {
   const _model = mongoose.models[name] || mongoose.model(name, parseSchema(schema));

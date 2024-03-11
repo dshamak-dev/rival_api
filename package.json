@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "nodemon",
     "start": "npm install && production=true node dist/server.js",
-    "build": "tsc",
+    "build": "tsc && tsc-alias",
     "test": "echo \"No test specified\""
   },
   "keywords": [],

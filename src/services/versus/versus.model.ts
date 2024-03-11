@@ -1,6 +1,6 @@
-import { SessionDTO, SessionPayloadDTO } from "src/core/session/model";
-import { UserDTO } from "src/core/user/user.model";
-import { TransactionDTO } from "src/core/transaction/transaction.model";
+import { SessionDTO, SessionPayloadDTO } from "core/session/model";
+import { UserDTO } from "core/user/user.model";
+import { TransactionDTO } from "core/transaction/transaction.model";
 
 export interface VersusPayloadDTO extends SessionPayloadDTO {
   config: VersusConfigDTO;
