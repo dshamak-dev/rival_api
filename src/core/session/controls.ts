@@ -1,3 +1,4 @@
+import { emitSessionEvent } from 'core/session/oberver';
 import repository from './repository';
 
 export async function create<T, P>(payload: T): Promise<P> {
@@ -17,5 +18,10 @@ export async function update<T>(query: any, payload: any): Promise<any> {
 }
 
 export async function updateOne<T>(query: any, payload: any): Promise<T> {
-  return repository.findOneAndUpdate(query, payload);
+  const session = await repository.findOneAndUpdate(query, payload);
+
+  emitSessionEvent(session);
+
+  return session;
 }
+

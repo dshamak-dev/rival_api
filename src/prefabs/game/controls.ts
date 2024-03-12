@@ -1,6 +1,21 @@
-import * as sessionControls from "core/session/controller";
+import * as sessionControls from "core/session/controls";
 import { GameDTO, GamePayloadDTO } from "./model";
-import { SessionType } from "core/session/model";
+import { SessionDTO, SessionType } from "core/session/model";
+
+
+export async function findById(sessionId: SessionDTO["_id"]): Promise<[string | null, GameDTO | null]> {
+  if (!sessionId) {
+    return ["Invalid data", null];
+  }
+
+  const session = await findOne({ _id: sessionId });
+
+  if (!session) {
+    return ["Invalid session", null];
+  }
+
+  return [null, session];
+}
 
 export async function create(payload: GamePayloadDTO): Promise<GameDTO> {
   const { config, ownerId, ...other } = payload;

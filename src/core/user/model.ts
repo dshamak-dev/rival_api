@@ -1,6 +1,6 @@
 import { createRepositoryModel } from "core/repository/controller";
 import { SessionDTO } from "core/session/model";
-import { TransactionDTO } from "core/transaction/transaction.model";
+import { TransactionDTO } from "core/transaction/model";
 import schema from "core/user/schema";
 
 export interface UserPayloadDTO {

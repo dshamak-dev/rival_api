@@ -1,10 +1,6 @@
 import { RepositorySchema } from "core/repository/model";
 
 const schema: RepositorySchema = {
-  capacity: {
-    type: "number",
-    default: -1,
-  },
   visibility: {
     type: "number",
     default: 0,
@@ -12,6 +8,14 @@ const schema: RepositorySchema = {
   type: {
     type: "number",
     default: 0,
+  },
+  title: {
+    type: "string",
+    require: true,
+    trim: true,
+  },
+  details: {
+    type: "string",
   },
   ownerId: {
     type: "string",

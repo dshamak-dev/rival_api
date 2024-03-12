@@ -1,6 +1,6 @@
 import { SessionDTO, SessionPayloadDTO } from "core/session/model";
 import { UserDTO } from "core/user/model";
-import { TransactionDTO } from "core/transaction/transaction.model";
+import { TransactionDTO } from "core/transaction/model";
 
 export interface GamePayloadDTO extends SessionPayloadDTO {
   config: GameConfigDTO;
@@ -21,10 +21,12 @@ export interface GameConfigDTO {
 
 export interface GameStateDTO {
   users: Record<UserDTO["_id"], { value: number; transactionId: TransactionDTO["_id"]; }>;
-  rounds: { winners: UserDTO["_id"][] }[];
+  offer?: number;
+  rounds: { winners: UserDTO["_id"][], state?: any; }[];
 }
 
 export interface GameResultDTO {
   winners: UserDTO["_id"][];
-  prizeTotal: number;
+  valueTotal: number;
+  valuePerWinner: number;
 }
