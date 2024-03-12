@@ -34,15 +34,15 @@ export class Repository {
   }
 
   findOne(query) {
-    return this.model?.find(query);
+    return this.model?.findOne(query);
   }
 
   findAndUpdate(filter, payload) {
-    return this.model?.updateMany(filter, payload);
+    return this.model?.updateMany(filter, payload, { new: true });
   }
 
   findOneAndUpdate(filter, payload) {
-    return this.model?.findOneAndUpdate(filter, payload);
+    return this.model?.findOneAndUpdate(filter, payload, { new: true });
   }
 
   findAndDelete(filter) {
@@ -51,5 +51,9 @@ export class Repository {
 
   findOneAndDelete(filter) {
     return this.model?.findOneAndDelete(filter);
+  }
+
+  addToArray(filter: any, field: string, items: any[]) {
+    return this.model?.findOneAndUpdate(filter, { $addToSet: { [field]: { $each: items } } }, { new: true });
   }
 }

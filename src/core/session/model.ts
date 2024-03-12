@@ -1,9 +1,10 @@
 import { createRepositoryModel } from "core/repository/controller";
 import schema from "core/session/schema";
-import { TransactionDTO } from "core/transaction/transaction.model";
-import { UserDTO } from "core/user/user.model";
+import { TransactionDTO } from "core/transaction/model";
+import { UserDTO } from "core/user/model";
 
 export interface SessionPayloadDTO {
+  title: string;
   type: SessionType;
   visibility?: SessionVisibilityType;
   ownerId: UserDTO["_id"];
@@ -13,8 +14,9 @@ export interface SessionPayloadDTO {
 
 export interface SessionDTO {
   _id: string;
+  title: string;
+  details?: string;
   type: SessionType;
-  capacity: number;
   visibility?: SessionVisibilityType;
   ownerId: UserDTO["_id"];
   stage: SessionStageType;
@@ -28,7 +30,7 @@ export interface SessionDTO {
 export enum SessionType {
   Draft = 0,
   Wager = 1,
-  Versus = 2,
+  Game = 2,
 }
 
 export enum SessionVisibilityType {

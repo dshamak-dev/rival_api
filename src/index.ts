@@ -3,7 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 
 import docsRouter from "./swagger";
-import services from "./services/";
+import routers from "./routers";
 
 import { initialize } from "./core/repository";
 
@@ -20,10 +20,9 @@ app.use(express.json());
 app.use(docsRouter);
 
 export const serviceProcess = new Promise(async (res) => {
-  const _list = Object.values(services);
+  const _list = Object.values(routers);
 
-  for (const service of _list) {
-    const router = await service();
+  for (const router of _list) {
     app.use("/api", router);
   }
 
