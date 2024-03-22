@@ -9,6 +9,22 @@ router.use(cors());
 
 const rootPath = '/users';
 
+/**
+ * @swagger
+ *
+ * /api/users:
+ *   get:
+ *    summary: Find Users.
+ *    description: Find Users.
+ *    tags: [Users]
+ *    responses:
+ *       200:
+ *         description: Returns a UserDTO.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ */
 router.get(rootPath + '/', async (req, res) => {
   const params = req.query;
 

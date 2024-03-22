@@ -2,7 +2,7 @@ import { SessionDTO, SessionStageType } from "core/session/model";
 import * as controls from "./controls";
 import * as userActions from "core/user/actions";
 import { UserDTO } from "core/user/model";
-import { GameResultDTO, GameStateDTO } from "prefabs/game/model";
+import { GameDTO, GameResultDTO, GameStateDTO } from "prefabs/game/model";
 import { TransactionDTO, TransactionPartyType } from "core/transaction/model";
 import * as transactionActions from "core/transaction/actions";
 
@@ -55,7 +55,8 @@ export async function publishGame(id: SessionDTO["_id"]) {
 export async function setUserOffer(
   sessionId: SessionDTO["_id"],
   userId: UserDTO["_id"],
-  value: number
+  value: number,
+  autoStart = false
 ) {
   const [error, session] = await controls.findById(sessionId);
 
@@ -66,13 +67,109 @@ export async function setUserOffer(
   // todo: validate user in game
   // todo: validate available user assets
 
+  const usersSessionState = session.state.users || {};
+
+  const usersStatePayload: GameDTO["state"]["users"] = session.users.reduce(
+    (accum, userId) => {
+      accum[userId] = {
+        value: null,
+        ...usersSessionState[userId],
+      };
+
+      return accum;
+    },
+    {}
+  );
+
+  Object.entries(usersStatePayload).forEach(([id, state]) => {
+    if (id === userId) {
+      usersStatePayload[id] = {
+        ...usersStatePayload[id],
+        value,
+      };
+    } else {
+      usersStatePayload[id] = {
+        ...usersStatePayload[id],
+        value: state.value !== value ? null : value,
+      };
+    }
+  });
+
+  const statePayload: GameStateDTO = {
+    ...session.state,
+    offer: value,
+    users: usersStatePayload,
+  };
+
+  const [updateError, updated] = await controls
+    .updateOne(sessionId, { state: statePayload })
+    .then((res) => {
+      return [null, res];
+    })
+    .catch((error) => {
+      return [error, null];
+    });
+
+  if (updateError) {
+    return Promise.reject(updateError);
+  }
+
+  if (!autoStart) {
+    return updated;
+  }
+
+  return startOnReady(updated).catch((error) => {
+    console.log("autostart error", error);
+    return updated;
+  });
+}
+
+export async function startOnReady(game: GameDTO) {
+  // const { state, users, stage } = game;
+
+  // if (![SessionStageType.Draft, SessionStageType.Lobby].includes(stage)) {
+  //   return game;
+  // }
+
+  // const usersMap = users.reduce((accum, userId) => {
+  //   accum[userId] = { value: null };
+
+  //   return accum;
+  // }, {});
+
+  // const allReady = Object.values(usersMap).every(({ ready }) => ready);
+
+  return startGame(game._id);
+}
+
+export async function setUserScore(
+  sessionId: SessionDTO["_id"],
+  userId: UserDTO["_id"],
+  value: number
+) {
+  const [error, session] = await controls.findById(sessionId);
+
+  if (error || !userId) {
+    return Promise.reject(error || "Invalid data");
+  }
+
+  // todo: validate user in game
+  // todo: validate available user assets
+
   const { state } = session;
 
   const usersStatePayload = state?.users || {};
+  const currentState = usersStatePayload[userId];
+
+  const nextScore = Number(value) || 0;
+
+  if (currentState?.score === nextScore) {
+    return session;
+  }
 
   usersStatePayload[userId] = {
-    ...usersStatePayload[userId],
-    value,
+    ...currentState,
+    score: nextScore,
   };
 
   const statePayload: GameStateDTO = {
@@ -81,7 +178,17 @@ export async function setUserOffer(
     users: usersStatePayload,
   };
 
-  return controls.updateOne(sessionId, { state: statePayload });
+  const updated = await controls.updateOne(sessionId, { state: statePayload });
+
+  const allSet = Object.values(usersStatePayload).every(
+    ({ score }) => score != null
+  );
+
+  if (allSet) {
+    return endRound(sessionId);
+  }
+
+  return updated;
 }
 
 export async function startGame(id: SessionDTO["_id"]) {
@@ -186,18 +293,15 @@ export async function startRound(id: SessionDTO["_id"]) {
   return controls.updateOne(id, { state: statePayload });
 }
 
-export async function endRound(
-  id: SessionDTO["_id"],
-  winners: UserDTO["_id"][]
-) {
+export async function endRound(id: SessionDTO["_id"]) {
   const [error, session] = await controls.findById(id);
 
-  if (error || !winners?.length) {
+  if (error) {
     return Promise.reject(error || "Invalid data");
   }
 
   const { stage, state, config } = session;
-  const { rounds, users } = state;
+  const { rounds } = state;
 
   if (![SessionStageType.Active].includes(stage)) {
     return Promise.reject("Game is not active");
@@ -209,6 +313,32 @@ export async function endRound(
 
   const currentRoundIndex = rounds.length - 1;
   const currentRound = rounds[currentRoundIndex];
+
+  if (!currentRound.state) {
+    currentRound.state = {
+      users: {},
+    };
+  }
+
+  const usersState = state.users;
+
+  const winners = [];
+
+  const sorted = Object.entries(usersState).sort((a, b) => {
+    return b[1].score - a[1].score;
+  });
+  const maxScore = sorted[0][1].score;
+  sorted.forEach(([id, data]) => {
+    if (maxScore === data.score) {
+      winners.push(id);
+    }
+
+    currentRound.state.users[id] = {
+      score: data.score,
+    };
+
+    state.users[id].score = null;
+  });
 
   currentRound.winners = winners;
 

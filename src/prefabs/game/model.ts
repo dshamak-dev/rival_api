@@ -20,7 +20,7 @@ export interface GameConfigDTO {
 }
 
 export interface GameStateDTO {
-  users: Record<UserDTO["_id"], { value: number; transactionId: TransactionDTO["_id"]; }>;
+  users: Record<UserDTO["_id"], { value: number; transactionId: TransactionDTO["_id"]; score?: number; }>;
   offer?: number;
   rounds: { winners: UserDTO["_id"][], state?: any; }[];
 }

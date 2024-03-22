@@ -5,6 +5,7 @@ import { UserDTO } from "core/user/model";
 
 export interface SessionPayloadDTO {
   title: string;
+  tag?: string;
   type: SessionType;
   visibility?: SessionVisibilityType;
   ownerId: UserDTO["_id"];
@@ -14,6 +15,7 @@ export interface SessionPayloadDTO {
 
 export interface SessionDTO {
   _id: string;
+  tag: string;
   title: string;
   details?: string;
   type: SessionType;

@@ -5,13 +5,10 @@ const schema: RepositorySchema = {
     type: "string",
     unique: true,
   },
-  visibility: {
+  sessionType: {
     type: "number",
     default: 0,
-  },
-  type: {
-    type: "number",
-    default: 0,
+    require: true
   },
   title: {
     type: "string",
@@ -23,34 +20,12 @@ const schema: RepositorySchema = {
   },
   ownerId: {
     type: "string",
-  },
-  stage: {
-    type: "number",
-    default: 0,
-  },
-  created: {
-    type: "string",
-  },
-  users: {
-    type: "array",
-    default: [],
-  },
-  transactions: {
-    type: "array",
-    default: [],
+    require: true
   },
   config: {
     type: "object",
     default: {},
-  },
-  state: {
-    type: "object",
-    default: {},
-  },
-  result: {
-    type: "object",
-    default: {},
-  },
+  }
 };
 
 export default schema;

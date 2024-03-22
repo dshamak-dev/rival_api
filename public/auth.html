@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Join the Rivals</title>
+    <link rel="shortcut icon" href="./favicon.ico" type="image/x-icon" />
+    <link rel="shortcut icon" href="./favicon.png" type="image/png" />
+    <style>
+      html {
+        font-size: 28px;
+      }
+      body {
+        margin: 0;
+        background: #222;
+        color: #eee;
+        min-height: 100vh;
+        display: grid;
+        align-items: center;
+        text-align: center;
+      }
+      a {
+        color: #deb887;
+      }
+    </style>
+  </head>
+  <body>
+    <form action="/api/auth" method="post">
+      <div>
+        <label for="email">email</label><br />
+        <input type="email" id="email" name="email" />
+      </div>
+      <div>
+        <label for="password">password</label><br />
+        <input type="password" id="password" name="password" />
+      </div>
+      <div>
+        <button>submit</button>
+      </div>
+    </form>
+    <script defer>
+      const searchParams = new URLSearchParams(location.search);
+      const redirectUrl = searchParams.get("redirectUrl");
+
+      const formEl = document.querySelector("form");
+
+      formEl.onsubmit = async (ev) => {
+        ev.preventDefault();
+        const formData = new FormData(ev.target);
+
+        const payload = {
+          email: formData.get("email"),
+          password: formData.get("password"),
+        };
+
+        const origin = location.origin;
+
+        const [error, token] = await fetch(`${origin}/api/auth`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        })
+          .then((res) => res.json())
+          .then((res) => {
+            return [null, res];
+          })
+          .catch((error) => {
+            return [error, null];
+          });
+
+        if (error){
+          return;
+        }
+
+        const params = new URLSearchParams(location.search);
+        const actionType = params.get('action');
+        const sessionId = params.get('sessionId');
+
+        switch (actionType) {
+          case 'connect': {
+            if (sessionId) {
+              // todo: connect by token?
+            }
+            break;
+          }
+        }
+        
+
+        if (redirectUrl) {
+          const url = new URL(redirectUrl);
+          const search = new URLSearchParams(url.search);
+
+          if (token) {
+            // search.append("authToken", token);
+          }
+
+          location.href = `${redirectUrl}`;
+        } else {
+          // window.close();
+        }
+      };
+    </script>
+  </body>
+</html>

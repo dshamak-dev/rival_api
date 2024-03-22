@@ -2,10 +2,11 @@ import { config } from "dotenv";
 import path from "path";
 import fs from "fs";
 import express from "express";
+import helmet from "helmet";
 
 const isProd = !!process.env.production;
 
-const envPath = path.join(__dirname, `../${isProd ? 'prod' : 'local'}.env`);
+const envPath = path.join(__dirname, `../${isProd ? "prod" : "local"}.env`);
 
 config({ path: envPath });
 
@@ -17,6 +18,17 @@ const PORT = process.env.PORT || 3000;
 
 const rootFile = path.join(__dirname, "../public/index.html");
 const notFoundFile = path.join(__dirname, "../public/404.html");
+
+const authFormFile = path.join(__dirname, "../public/auth.html");
+
+app.get("/auth", (req, res) => {
+  if (fs.existsSync(authFormFile)) {
+    // res.header('Content-Security-Policy', 'frame-ancestors http://localhost:3001')
+    res.status(200).sendFile(authFormFile);
+  } else {
+    req.next();
+  }
+});
 
 serviceProcess.finally(() => {
   app.get("/", (req, res) => {
@@ -33,7 +45,7 @@ serviceProcess.finally(() => {
     } else {
       res
         .status(200)
-        .setHeader('content-type', "text/html; charset=UTF-8")
+        .setHeader("content-type", "text/html; charset=UTF-8")
         .end(
           `
           <!DOCTYPE html>

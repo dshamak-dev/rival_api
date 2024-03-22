@@ -26,7 +26,11 @@ export class Repository {
   }
 
   create(payload) {
-    return this.model?.create(payload);
+    const body = {
+      ...payload,
+    };
+
+    return this.model?.create(body);
   }
 
   find(query) {
@@ -54,6 +58,10 @@ export class Repository {
   }
 
   addToArray(filter: any, field: string, items: any[]) {
-    return this.model?.findOneAndUpdate(filter, { $addToSet: { [field]: { $each: items } } }, { new: true });
+    return this.model?.findOneAndUpdate(
+      filter,
+      { $addToSet: { [field]: { $each: items } } },
+      { new: true }
+    );
   }
 }

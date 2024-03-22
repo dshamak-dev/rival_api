@@ -5,6 +5,11 @@ import swaggerConfig from "./config.json";
 
 const router = Router();
 
+/**
+ * @swagger
+ *  tags:
+ *    name: Games
+ */
 const spec = swaggerJSDoc(swaggerConfig);
 
 router.use("/docs", swaggerUI.serve, swaggerUI.setup(spec));
