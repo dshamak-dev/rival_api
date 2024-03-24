@@ -5,15 +5,34 @@ import repository from "./repository";
 import jwt from "jsonwebtoken";
 import { Request } from "express";
 import { parseCookies } from "utils/cookie.utils";
+import { emitEvent } from "core/broadcast/oberver";
 
 export async function findUser(filter) {
   return repository.findOne(filter);
 }
 
 export async function addSession(userId, sessionId) {
-  console.log("add session to user");
-
   return controls.addToArray(userId, "sessions", [sessionId]);
+}
+
+export async function addUserAssets(userId, value) {
+  const user = await repository.incrementNumber({ _id: userId }, "assets", value);
+
+  if (user) {
+    emitEvent('user', user._id, user);
+  }
+
+  return user;
+}
+
+export async function removeUserAssets(userId, value) {
+  const user = await repository.decrementNumber({ _id: userId }, "assets", value);
+
+  if (user) {
+    emitEvent('user', user._id, user);
+  }
+
+  return user;
 }
 
 export async function addTransactions<T>(

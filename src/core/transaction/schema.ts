@@ -18,7 +18,7 @@ const schema: RepositorySchema = {
     type: "number",
     require: true,
   },
-  stargetId: {
+  targetId: {
     type: "string",
     require: true,
   },

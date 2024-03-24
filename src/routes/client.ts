@@ -4,7 +4,7 @@ import repository from "core/session/repository";
 import * as templateActions from "core/template/actions";
 import { decodeUserToken, getUserCredentials } from "core/user/actions";
 import { connectUser, setUserOffer, setUserScore } from "prefabs/game/actions";
-import { addListener, removeListener } from "core/session/oberver";
+import { addListener, removeListener } from "core/broadcast/oberver";
 import { SessionDTO, SessionStageType } from "core/session/model";
 
 const router = express.Router();
@@ -111,7 +111,7 @@ router.get(`${rootPath}/:sessionId/broadcast`, async (req, res) => {
     res.write(encoder.encode("data: " + JSON.stringify(payload) + "\n\n"));
   }
 
-  addListener(sessionId, handleEvent);
+  addListener('session', sessionId, handleEvent);
 
   res.once("close", () => {
     removeListener(sessionId, handleEvent);

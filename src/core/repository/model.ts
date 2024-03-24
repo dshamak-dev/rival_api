@@ -64,4 +64,20 @@ export class Repository {
       { new: true }
     );
   }
+
+  incrementNumber(filter: any, field: string, value: number) {
+    return this.model?.findOneAndUpdate(
+      filter,
+      { $inc: { [field]: value } },
+      { new: true }
+    );
+  }
+
+  decrementNumber(filter: any, field: string, value: number) {
+    return this.model?.findOneAndUpdate(
+      filter,
+      { $inc: { [field]: -value } },
+      { new: true }
+    );
+  }
 }

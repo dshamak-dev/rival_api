@@ -7,7 +7,11 @@ export function parseCookies(cookies: string): Record<string, any> | null {
     .split(";")
     .map((v) => v.split("="))
     .reduce((acc, v) => {
-      acc[decodeURIComponent(v[0].trim())] = decodeURIComponent(v[1].trim());
+      if (!v?.length){
+        return acc;
+      }
+
+      acc[decodeURIComponent(v[0]?.trim())] = decodeURIComponent(v[1]?.trim());
       return acc;
     }, {});
 }

@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import { addListener, removeListener } from "core/session/oberver";
+import { addListener, removeListener } from "core/broadcast/oberver";
 import { SessionDTO } from "core/session/model";
 import repository from "core/session/repository";
 import * as templateActions from "core/template/actions";
@@ -69,10 +69,10 @@ router.get(`${rootPath}/:id/stream`, async (req, res) => {
     res.write(encoder.encode("data: " + JSON.stringify(data) + "\n\n"));
   }
 
-  addListener(sessionId, handleEvent);
+  addListener('session', sessionId, handleEvent);
 
   res.once("close", () => {
-    removeListener(sessionId, handleEvent);
+    removeListener(`session-${sessionId}`, handleEvent);
   });
 
   Object.entries({

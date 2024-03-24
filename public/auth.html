@@ -71,6 +71,7 @@
           });
 
         if (error){
+          console.log('auth error', error);
           return;
         }
 
@@ -87,18 +88,15 @@
           }
         }
         
+        console.log('try redirect', redirectUrl);
 
         if (redirectUrl) {
           const url = new URL(redirectUrl);
           const search = new URLSearchParams(url.search);
 
-          if (token) {
-            // search.append("authToken", token);
-          }
+          console.log('redirect', redirectUrl);
 
           location.href = `${redirectUrl}`;
-        } else {
-          // window.close();
         }
       };
     </script>

@@ -1,9 +1,13 @@
 import express from "express";
 import cors from "cors";
 import * as controls from "core/user/controls";
-import * as actions from 'prefabs/game/actions';
-import { getUserCredentials } from "core/user/actions";
-import { createTransferTransaction, createVoucherTransaction } from "core/transaction/actions";
+import { addUserAssets, getUserCredentials } from "core/user/actions";
+import {
+  createTransferTransaction,
+  createVoucherTransaction,
+} from "core/transaction/actions";
+import { UserDTO } from "core/user/model";
+import { addListener, removeListener } from "core/broadcast/oberver";
 
 const router = express.Router();
 
@@ -26,7 +30,7 @@ router.use(express.json());
  *             schema:
  *               type: object
  */
-router.get('/users', async (req, res) => {
+router.get("/users", async (req, res) => {
   const params = req.query;
 
   const result = await controls.find(params);
@@ -34,33 +38,52 @@ router.get('/users', async (req, res) => {
   res.json(result).status(200);
 });
 
-router.post('/users', (req, res) => {
+router.post("/users", (req, res) => {
   const body = req.body;
 
-  controls.create(body).then((payload) => {
-    res.json(payload).status(201).end();
-  }).catch(error => {
-    res.json({ error }).status(400).end();
-  });
+  controls
+    .create(body)
+    .then((payload) => {
+      res.json(payload).status(201).end();
+    })
+    .catch((error) => {
+      res.json({ error }).status(400).end();
+    });
 });
 
-router.patch('/users/:id', (req, res) => {
+router.patch("/users/:id", (req, res) => {
   const userId = req.params.id;
   const body = req.body;
 
-  controls.updateOne({_id: userId}, body).then((payload) => {
-    res.json(payload).status(200).end();
-  }).catch(error => {
-    res.json({ error }).status(400).end();
-  });
+  controls
+    .updateOne({ _id: userId }, body)
+    .then((payload) => {
+      res.json(payload).status(200).end();
+    })
+    .catch((error) => {
+      res.json({ error }).status(400).end();
+    });
+});
+
+router.post("/users/:id/assets", (req, res) => {
+  const userId = req.params.id;
+  const { value } = req.body;
+
+  addUserAssets(userId, value)
+    .then((payload) => {
+      res.json(payload).status(200).end();
+    })
+    .catch((error) => {
+      res.json({ error }).status(400).end();
+    });
 });
 
 // credentials
-router.get('/users/self', async (req, res) => {
+router.get("/users/self", async (req, res) => {
   const cred = getUserCredentials(req);
 
   if (!cred) {
-    return res.status(403).json({ error: 'not authorized' })
+    return res.status(403).json({ error: "not authorized" });
   }
 
   const result = await controls.findOne({ _id: cred.id });
@@ -68,40 +91,80 @@ router.get('/users/self', async (req, res) => {
   res.json(result).status(200);
 });
 
-router.post('/user/transactions', async (req, res) => {
+router.post("/user/transactions", async (req, res) => {
   const cred = getUserCredentials(req);
 
   if (!cred) {
-    return res.status(403).json({ error: 'not authorized' })
+    return res.status(403).json({ error: "not authorized" });
   }
 
   const { type, payload } = req.body;
-  console.log(req.body);
 
   let handler = null;
 
   switch (type) {
-    case 'voucher': {
-      handler = () => createVoucherTransaction(cred.id, payload.code, payload.details); 
+    case "voucher": {
+      handler = () =>
+        createVoucherTransaction(cred.id, payload.code, payload.details);
       break;
     }
-    case 'transfer': {
-      handler = () => createTransferTransaction(cred.id, { email: payload.email }, payload.value, payload.details); 
+    case "transfer": {
+      handler = () =>
+        createTransferTransaction(
+          cred.id,
+          { email: payload.email },
+          payload.value,
+          payload.details
+        );
       break;
     }
   }
 
   if (!handler) {
-    return res.status(400).end('Invalid transaction');
+    return res.status(400).end("Invalid transaction");
   }
 
-  handler().then(transaction => {
-    res.json(transaction).status(200);
-  }).catch(error => {
-    res.status(400).end(error?.message || error);
+  handler()
+    .then((transaction) => {
+      res.json(transaction).status(200);
+    })
+    .catch((error) => {
+      res.status(400).end(error?.message || error);
+    });
+});
+
+router.get(`/user/broadcast`, async (req, res) => {
+  const cred = getUserCredentials(req);
+
+  if (!cred) {
+    return res.status(403).json({ error: "not authorized" });
+  }
+
+  const encoder = new TextEncoder();
+
+  function handleEvent(data: UserDTO) {
+    res.write(encoder.encode("data: " + JSON.stringify(data) + "\n\n"));
+  }
+
+  addListener("user", cred.id, handleEvent);
+
+  res.once("close", () => {
+    removeListener(`user-${cred.id}`, handleEvent);
   });
 
-  
+  Object.entries({
+    "Access-Control-Allow-Origin": req.headers.origin,
+    "Access-Control-Allow-Credentials": "true",
+    "Content-Type": "text/event-stream; charset=utf-8",
+    Connection: "keep-alive",
+    "Cache-Control": "no-cache, no-transform",
+    "X-Accel-Buffering": "no",
+    "Content-Encoding": "none",
+    "Access-Control-Allow-Headers":
+      "Origin, X-Requested-With, Authorization, Content-Type, Accept",
+  }).forEach(([key, value]) => {
+    res.setHeader(key, value);
+  });
 });
 
 export default router;

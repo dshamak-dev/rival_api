@@ -3,11 +3,12 @@ import {
   TransactionDTO,
   TransactionPartyType,
   TransactionPayloadDTO,
+  TransactionStageType,
 } from "core/transaction/model";
 import * as sessionActions from "core/session/actions";
 import * as userActions from "core/user/actions";
 import { UserDTO } from "core/user/model";
-import * as voucherActions from 'core/voucher/actions';
+import * as voucherActions from "core/voucher/actions";
 
 export async function createVoucherTransaction(
   userId: UserDTO["_id"],
@@ -18,26 +19,30 @@ export async function createVoucherTransaction(
     .findVoucher({ code: voucherCode })
     .then((voucher) => {
       if (!voucher) {
-        return ['Voucher not found', null];
+        return ["Voucher not found", null];
       }
 
       return [null, voucher];
     })
     .catch((error) => [error, null]);
 
-  if (error) {
-    return Promise.reject(error);
+  if (!userId || error || !voucher) {
+    return Promise.reject(error || 'Invalid voucher');
+  }
+
+  if (voucher.users?.includes(userId)) {
+    return Promise.reject('Voucher already used');
   }
 
   const voucherId = voucher._id;
   const voucherValue = voucher.value;
 
   const transactionPayload = {
-    details: details || `Voucher used: ${voucherCode}`,
-    sourceId: userId,
-    sourceType: TransactionPartyType.User,
-    targetType: TransactionPartyType.Voucher,
-    targetId: voucherId,
+    details: details || `Voucher ${voucherCode}`,
+    sourceId: voucherId,
+    sourceType: TransactionPartyType.Voucher,
+    targetType: TransactionPartyType.User,
+    targetId: userId,
     value: voucherValue,
   };
 
@@ -55,7 +60,7 @@ export async function createTransferTransaction(
   const toUserId = targetUser?._id;
 
   if (!fromUserId || !toUserId) {
-    return Promise.reject('Invalid data');
+    return Promise.reject("Invalid data");
   }
 
   const transactionPayload = {
@@ -82,7 +87,7 @@ export async function createTransaction(
     linkTransactionWithParty(_id, targetId, targetType),
   ]);
 
-  return transaction;
+  return tryResolveTransaction(transaction);
 }
 
 export async function linkTransactionWithParty(
@@ -100,4 +105,144 @@ export async function linkTransactionWithParty(
   }
 
   return Promise.resolve(null);
+}
+
+export async function tryResolveTransaction(
+  transaction: TransactionDTO
+): Promise<TransactionDTO> {
+  if (!transaction) {
+    return transaction;
+  }
+
+  const {
+    stage = 0,
+    sourceType,
+    sourceId,
+    targetId,
+    targetType,
+    value,
+  } = transaction;
+
+  if (
+    [TransactionStageType.Confirm, TransactionStageType.Reject].includes(stage)
+  ) {
+    return transaction;
+  }
+
+  switch (sourceType) {
+    case TransactionPartyType.Voucher: {
+      const ok = await voucherActions
+        .useVoucher(targetId, { _id: sourceId })
+        .then((res) => {
+          console.log('voucher userd');
+          return res != null;
+        })
+        .catch((err) => {
+          console.log('voucher error', err);
+
+          return false;
+        });
+
+      console.log('resolve voucher transaction', ok);
+      if (ok) {
+        return confirmVoucherTransaction(transaction);
+      } else {
+        return rejectTransaction(transaction);
+      }
+    }
+    case TransactionPartyType.User: {
+      return confirmTransferTransaction(transaction);
+    }
+  }
+
+  return transaction;
+}
+
+export async function rejectTransaction(
+  transaction: TransactionDTO
+): Promise<TransactionDTO> {
+  return repository.findOneAndUpdate(
+    { _id: transaction._id },
+    { stage: TransactionStageType.Reject }
+  );
+}
+
+export async function confirmVoucherTransaction(
+  transaction: TransactionDTO
+): Promise<TransactionDTO> {
+  const ok = await sendAssets(
+    transaction.targetId,
+    transaction.targetType,
+    transaction.value
+  );
+
+  if (!ok) {
+    return transaction;
+  }
+
+  return repository.findOneAndUpdate(
+    { _id: transaction._id },
+    { stage: TransactionStageType.Confirm }
+  );
+}
+
+export async function confirmTransferTransaction(
+  transaction: TransactionDTO
+): Promise<TransactionDTO> {
+  const ok = await Promise.all([sendAssets(
+    transaction.targetId,
+    transaction.targetType,
+    transaction.value
+  ), removeAssets(
+    transaction.sourceId,
+    transaction.sourceType,
+    transaction.value
+  )]).then((results) => results.every(res => res));
+
+  if (!ok) {
+    return transaction;
+  }
+
+  return repository.findOneAndUpdate(
+    { _id: transaction._id },
+    { stage: TransactionStageType.Confirm }
+  );
+}
+
+export async function sendAssets(
+  id: string,
+  type: TransactionPartyType,
+  value: number
+): Promise<boolean> {
+  let error = null;
+
+  switch (type) {
+    case TransactionPartyType.User: {
+      await userActions.addUserAssets(id, value).catch((error) => {
+        error = error;
+      });
+      break;
+    }
+  }
+
+  return !error;
+}
+
+export async function removeAssets(
+  id: string,
+  type: TransactionPartyType,
+  value: number
+): Promise<boolean> {
+  let error = null;
+
+  switch (type) {
+    case TransactionPartyType.User: {
+      await userActions.removeUserAssets(id, value).catch((error) => {
+        error = error;
+      });
+      break;
+    }
+  }
+
+  return !error;
 }
