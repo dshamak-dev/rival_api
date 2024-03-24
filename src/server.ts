@@ -39,6 +39,10 @@ serviceProcess.finally(() => {
     }
   });
 
+  app.use("/api/*", (req, res) => {
+    res.status(404).end('invalid route');
+  });
+
   app.use((req, res) => {
     if (fs.existsSync(notFoundFile)) {
       res.status(200).sendFile(notFoundFile);

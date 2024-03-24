@@ -1,9 +1,8 @@
 import express from "express";
 import cookieParser from "cookie-parser";
-import path from "path";
 import repository from "core/session/repository";
 import * as templateActions from "core/template/actions";
-import { decodeUserToken } from "core/user/actions";
+import { decodeUserToken, getUserCredentials } from "core/user/actions";
 import { connectUser, setUserOffer, setUserScore } from "prefabs/game/actions";
 import { addListener, removeListener } from "core/session/oberver";
 import { SessionDTO, SessionStageType } from "core/session/model";
@@ -12,12 +11,6 @@ const router = express.Router();
 const rootPath = "/client";
 
 router.use(cookieParser());
-
-const scriptPath = path.join(__dirname, "../client/index.js");
-
-router.get(`${rootPath}/`, (req, res) => {
-  res.sendFile(scriptPath);
-});
 
 router.post(`${rootPath}/actions`, async (req, res) => {
   const { payload, type } = req.body;
@@ -29,8 +22,7 @@ router.post(`${rootPath}/actions`, async (req, res) => {
     return res.end("Invalid data").status(400);
   }
 
-  const token = req.cookies?.rivalAccessToken;
-  const decoded: any = decodeUserToken(token);
+  const decoded: any = getUserCredentials(req);
   const userId = decoded?.id;
   const inGame = userId && session && session.users?.includes(userId);
   const sessionId = session?._id;

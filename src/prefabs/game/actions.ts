@@ -156,31 +156,35 @@ export async function setUserScore(
   // todo: validate user in game
   // todo: validate available user assets
 
-  const { state } = session;
+  const { state, stage } = session;
+
+  if (stage === SessionStageType.Close) {
+    return session;
+  }
 
   const usersStatePayload = state?.users || {};
   const currentState = usersStatePayload[userId];
 
   const nextScore = Number(value) || 0;
 
-  if (currentState?.score === nextScore) {
-    return session;
+  let updated = session;
+
+  if (currentState?.score !== nextScore) {
+    usersStatePayload[userId] = {
+      ...currentState,
+      score: nextScore,
+    };
+  
+    const statePayload: GameStateDTO = {
+      ...state,
+      offer: value,
+      users: usersStatePayload,
+    };
+  
+    updated = await controls.updateOne(sessionId, { state: statePayload });
   }
 
-  usersStatePayload[userId] = {
-    ...currentState,
-    score: nextScore,
-  };
-
-  const statePayload: GameStateDTO = {
-    ...state,
-    offer: value,
-    users: usersStatePayload,
-  };
-
-  const updated = await controls.updateOne(sessionId, { state: statePayload });
-
-  const allSet = Object.values(usersStatePayload).every(
+  const allSet = Object.values(updated.state.users).every(
     ({ score }) => score != null
   );
 

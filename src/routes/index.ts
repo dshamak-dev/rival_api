@@ -4,7 +4,8 @@ import sessions from "./sessions";
 import auth from "./auth";
 import templates from "./templates";
 import client from "./client";
+import vouchers from "./vouchers.router";
 
 export default {
-  game, user, sessions, auth, templates, client
+  vouchers, game, user, sessions, auth, templates, client
 };
