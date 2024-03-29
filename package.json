@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "nodemon",
     "start": "npm install && production=true node dist/server.js",
+    "client-dev": "node ./widget.build.js --watch",
+    "client-build": "node ./widget.build.js --production --minify",
     "build": "tsc && tsc-alias",
     "test": "echo \"No test specified\""
   },
@@ -33,6 +35,9 @@
     "@types/node": "^20.11.24",
     "copy-webpack-plugin": "^11.0.0",
     "cross-env": "^7.0.3",
+    "esbuild": "^0.20.2",
+    "esbuild-css-modules-plugin": "^3.1.0",
+    "esbuild-plugin-copy": "^2.1.1",
     "nodemon": "^3.1.0",
     "ts-loader": "^9.5.1",
     "ts-node": "^10.9.2",

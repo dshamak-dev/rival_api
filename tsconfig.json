@@ -20,7 +20,7 @@
     "importHelpers": true,
     "baseUrl": "./src"
   },
-  "include": ["./src/**/*.ts", "src/client/index.js"],
-  "exclude": ["node_modules/**/*", "dist"],
+  "include": ["./src/**/*.ts"],
+  "exclude": ["node_modules/**/*", "dist", "src/client/*.ts"],
   "ts-node": { "require": ["tsconfig-paths/register"] }
 }

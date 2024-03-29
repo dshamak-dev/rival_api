@@ -2,7 +2,7 @@ const apiDomain = `{ ENV_PATH }`;
 
 const current = document.currentScript;
 const templateId = current.getAttribute("data-template");
-
+const tokenDomain = current.getAttribute("data-domain") || location.host;
 const env = {
   tokenKey: "rival-token",
   playerKey: "rival-player",
@@ -112,7 +112,7 @@ class GameClient {
       <div>
         ${
           type === "auth"
-            ? `<a href="${apiDomain}/auth?sessionId=${sessionId}&action=connect&redirectUrl=${authUrl}">log in</a>`
+            ? `<a href="${apiDomain}/auth?sessionId=${sessionId}&action=connect&redirectUrl=${authUrl}&tokenDomain=${tokenDomain}">log in</a>`
             : type === "confirm"
             ? `
               <div><input type="number" data-type="input" min="1" value="${offer}" /></div>

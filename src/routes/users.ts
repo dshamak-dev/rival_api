@@ -8,6 +8,7 @@ import {
 } from "core/transaction/actions";
 import { UserDTO } from "core/user/model";
 import { addListener, removeListener } from "core/broadcast/oberver";
+import repository from "core/user/repository";
 
 const router = express.Router();
 
@@ -34,6 +35,18 @@ router.get("/users", async (req, res) => {
   const params = req.query;
 
   const result = await controls.find(params);
+
+  res.json(result).status(200);
+});
+
+router.delete("/users/:id", async (req, res) => {
+  const userId = req.params.id;
+
+  const [error, result] = await repository.findOneAndDelete({ _id: userId }).then(res => [null, res]).catch(err => [err, null]);
+
+  if (error) {
+    return res.status(400).end(error?.message || error);
+  }
 
   res.json(result).status(200);
 });

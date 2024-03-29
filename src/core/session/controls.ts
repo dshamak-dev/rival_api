@@ -20,7 +20,9 @@ export async function update<T>(query: any, payload: any): Promise<any> {
 export async function updateOne<T>(query: any, payload: any): Promise<T> {
   const session = await repository.findOneAndUpdate(query, payload);
 
-  emitEvent('session', session._id, session);
+  if (session?._id) {
+    emitEvent('session', session._id, session);
+  }
 
   return session;
 }

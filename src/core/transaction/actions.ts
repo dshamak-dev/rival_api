@@ -134,7 +134,6 @@ export async function tryResolveTransaction(
       const ok = await voucherActions
         .useVoucher(targetId, { _id: sourceId })
         .then((res) => {
-          console.log('voucher userd');
           return res != null;
         })
         .catch((err) => {
@@ -143,14 +142,14 @@ export async function tryResolveTransaction(
           return false;
         });
 
-      console.log('resolve voucher transaction', ok);
       if (ok) {
         return confirmVoucherTransaction(transaction);
       } else {
         return rejectTransaction(transaction);
       }
     }
-    case TransactionPartyType.User: {
+    case TransactionPartyType.User:
+    case TransactionPartyType.Session: {
       return confirmTransferTransaction(transaction);
     }
   }

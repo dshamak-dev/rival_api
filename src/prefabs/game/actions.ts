@@ -7,7 +7,11 @@ import { TransactionDTO, TransactionPartyType } from "core/transaction/model";
 import * as transactionActions from "core/transaction/actions";
 
 // #start User region
-export async function connectUser(id: SessionDTO["_id"], userId) {
+export async function connectUser(
+  id: SessionDTO["_id"],
+  userId,
+  params = null
+) {
   const [error, session] = await controls.findById(id);
 
   if (error || !userId) {
@@ -27,7 +31,12 @@ export async function connectUser(id: SessionDTO["_id"], userId) {
   const nextUsers = users.slice();
   nextUsers.push(userId);
 
-  const updated = await controls.updateOne(id, { users: nextUsers });
+  const state = session.state || {};
+
+  const prevState = state[userId] || {};
+  state[userId] = { ...prevState, ...params };
+
+  const updated = await controls.updateOne(id, { users: nextUsers, state });
 
   await userActions.addSession(userId, id);
 
@@ -41,11 +50,15 @@ export async function removeUser(id: SessionDTO["_id"], userId) {
     return Promise.reject(error || "Invalid data");
   }
 
-  const { users = [] } = session;
+  const { users = [], state } = session;
+
+  if (state?.users && state?.users[userId]) {
+    delete state.users[userId];
+  }
 
   const nextUsers = users.filter((it) => it !== userId);
 
-  return controls.updateOne(id, { users: nextUsers });
+  return controls.updateOne(id, { users: nextUsers, state });
 }
 
 export async function publishGame(id: SessionDTO["_id"]) {
@@ -58,9 +71,23 @@ export async function setUserOffer(
   value: number,
   autoStart = false
 ) {
+  if (!userId) {
+    return Promise.reject("Invalid user");
+  }
+
+  const user = await userActions.findUser({_id: userId}).catch(err => null);
+
+  if (!user) {
+    return Promise.reject("Invalid user");
+  }
+
+  if (value && user.assets < value) {
+    return Promise.reject("Not enough assets");
+  }
+
   const [error, session] = await controls.findById(sessionId);
 
-  if (error || !userId || !value) {
+  if (error) {
     return Promise.reject(error || "Invalid data");
   }
 
@@ -87,7 +114,7 @@ export async function setUserOffer(
         ...usersStatePayload[id],
         value,
       };
-    } else {
+    } else if (value != null) {
       usersStatePayload[id] = {
         ...usersStatePayload[id],
         value: state.value !== value ? null : value,
@@ -97,7 +124,7 @@ export async function setUserOffer(
 
   const statePayload: GameStateDTO = {
     ...session.state,
-    offer: value,
+    offer: value || session.state?.offer || 0,
     users: usersStatePayload,
   };
 
@@ -174,13 +201,12 @@ export async function setUserScore(
       ...currentState,
       score: nextScore,
     };
-  
+
     const statePayload: GameStateDTO = {
       ...state,
-      offer: value,
       users: usersStatePayload,
     };
-  
+
     updated = await controls.updateOne(sessionId, { state: statePayload });
   }
 

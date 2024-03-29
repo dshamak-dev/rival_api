@@ -2,8 +2,8 @@ import express from "express";
 import cookieParser from "cookie-parser";
 import repository from "core/session/repository";
 import * as templateActions from "core/template/actions";
-import { decodeUserToken, getUserCredentials } from "core/user/actions";
-import { connectUser, setUserOffer, setUserScore } from "prefabs/game/actions";
+import { decodeUserToken, findInSession, getUserCredentials } from "core/user/actions";
+import { connectUser, removeUser, setUserOffer, setUserScore } from "prefabs/game/actions";
 import { addListener, removeListener } from "core/broadcast/oberver";
 import { SessionDTO, SessionStageType } from "core/session/model";
 
@@ -14,9 +14,17 @@ router.use(cookieParser());
 
 router.post(`${rootPath}/actions`, async (req, res) => {
   const { payload, type } = req.body;
-  const { tag, templateId } = payload;
+  const { tag, templateId, linkedId } = payload;
 
   let session = await repository.findOne({ tag });
+
+  res.set({
+    'Access-Control-Allow-Origin': req.headers.origin,
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Credentials': 'true',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, Credentials',
+    'Access-Control-Max-Age': 86400
+});
 
   if (!session && !templateId) {
     return res.end("Invalid data").status(400);
@@ -27,16 +35,42 @@ router.post(`${rootPath}/actions`, async (req, res) => {
   const inGame = userId && session && session.users?.includes(userId);
   const sessionId = session?._id;
 
+  let actionError = null;
+
   switch (type) {
     case "connect": {
       if (!session) {
-        session = await templateActions.createFromTemplate(templateId, { tag });
+        session = await templateActions.createFromTemplate(templateId, { tag }).catch(err => null);
       }
 
-      if (decoded?.id) {
-        await connectUser(session._id, decoded?.id)
+      if (session && decoded?.id) {
+        await connectUser(session._id, decoded?.id, { linkedId })
           .then((res) => {
             session = res;
+          })
+          .catch((error) => {
+            console.log(error);
+          });
+      }
+      break;
+    }
+    case "disconnect": {
+      if (!session) {
+        break
+      }
+
+      const userQuery = {
+        id: decoded?.id,
+        linkedId: linkedId
+      }
+
+      const targetUserId = findInSession(session, userQuery)?.id;
+
+      if (targetUserId) {
+        await removeUser(session._id, targetUserId)
+          .then((res) => {
+            session = res;
+            console.log("discommect result", res);
           })
           .catch((error) => {
             console.log(error);
@@ -54,6 +88,7 @@ router.post(`${rootPath}/actions`, async (req, res) => {
           session = updated;
         })
         .catch((error) => {
+          actionError = error;
           console.log("offer error", error);
         });
       break;
@@ -64,9 +99,11 @@ router.post(`${rootPath}/actions`, async (req, res) => {
       }
 
       try {
+        const targetuserId = findInSession(session, { linkedId, id: userId })?.id;
+
         await setUserScore(
           sessionId,
-          userId,
+          targetuserId,
           Number(payload.score) || null
         ).then((updated) => {
           session = updated;
@@ -78,19 +115,20 @@ router.post(`${rootPath}/actions`, async (req, res) => {
     }
   }
 
-  if (session) {
+  if (!actionError && session) {
     const payload = getGameUserState(session, decoded);
 
-    res.header("Access-Control-Allow-Origin", req.headers.origin);
     res.header("Access-Control-Allow-Credentials", "true");
+    res.header("Access-Control-Allow-Origin", req.headers.origin);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
     res.header(
       "Access-Control-Allow-Headers",
-      "Origin, X-Requested-With, Authorization, Content-Type, Accept"
+      "Content-Type, Authorization, Content-Length, X-Requested-With"
     );
     return res.json(payload).status(200);
   }
 
-  return res.end("Invalid data").status(400);
+  return res.status(400).end(actionError || "Invalid data");
 });
 
 router.get(`${rootPath}/:sessionId/broadcast`, async (req, res) => {
@@ -111,7 +149,7 @@ router.get(`${rootPath}/:sessionId/broadcast`, async (req, res) => {
     res.write(encoder.encode("data: " + JSON.stringify(payload) + "\n\n"));
   }
 
-  addListener('session', sessionId, handleEvent);
+  addListener("session", sessionId, handleEvent);
 
   res.once("close", () => {
     removeListener(sessionId, handleEvent);
@@ -136,7 +174,10 @@ export default router;
 
 function getGameUserState(session, user = null) {
   const { _id, users, state, stage, result } = session;
-  let userState = user
+
+  const inSession = findInSession(session, user)?.id != null;
+
+  let userState = inSession && user
     ? {
         id: user.id,
         email: user.email,
@@ -153,8 +194,9 @@ function getGameUserState(session, user = null) {
   const payload = {
     id: _id,
     offer: state?.offer || 0,
+    total: users?.length * state?.offer,
     logged: user && users?.includes(user?.id),
-    userState,
+    user: userState,
     stage,
   };
 
