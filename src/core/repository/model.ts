@@ -65,6 +65,22 @@ export class Repository {
     );
   }
 
+  removeFromArray(filter: any, field: string, item: any) {
+    return this.model?.findOneAndUpdate(
+      filter,
+      { $pull: { [field]: item } },
+      { new: true }
+    );
+  }
+
+  setToObject(filter: any, path: string, { key, value }) {
+    return this.model?.findOneAndUpdate(
+      filter,
+      { $set: { [`${path}.${key}`]: value } },
+      { upsert: true, new: true }
+    );
+  }
+
   incrementNumber(filter: any, field: string, value: number) {
     return this.model?.findOneAndUpdate(
       filter,

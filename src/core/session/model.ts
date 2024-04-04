@@ -31,8 +31,9 @@ export interface SessionDTO {
 
 export enum SessionType {
   Draft = 0,
-  Wager = 1,
+  Bet = 1,
   Game = 2,
+  Quiz = 3
 }
 
 export enum SessionVisibilityType {

@@ -2,8 +2,9 @@ import * as sessionControls from "core/session/controls";
 import { GameDTO, GamePayloadDTO } from "./model";
 import { SessionDTO, SessionType } from "core/session/model";
 
-
-export async function findById(sessionId: SessionDTO["_id"]): Promise<[string | null, GameDTO | null]> {
+export async function findById(
+  sessionId: SessionDTO["_id"]
+): Promise<[string | null, GameDTO | null]> {
   if (!sessionId) {
     return ["Invalid data", null];
   }
@@ -24,7 +25,28 @@ export async function create(payload: GamePayloadDTO): Promise<GameDTO> {
     return Promise.reject("Session require valid owner");
   }
 
-  const body: GamePayloadDTO = {
+  const body: GamePayloadDTO = parse(payload);
+
+  return sessionControls.create<GamePayloadDTO, GameDTO>(body);
+}
+
+export async function edit(
+  id: SessionDTO["_id"],
+  payload: GamePayloadDTO
+): Promise<GameDTO> {
+  if (!id) {
+    return Promise.reject("Session require valid owner");
+  }
+
+  const body: GamePayloadDTO = parse(payload);
+
+  return sessionControls.updateOne({ _id: id }, body);
+}
+
+export function parse(payload) {
+  const { config, ownerId, ...other } = payload;
+
+  return {
     ...other,
     ownerId,
     type: SessionType.Game,
@@ -32,10 +54,8 @@ export async function create(payload: GamePayloadDTO): Promise<GameDTO> {
       maxRounds: 1,
       minUsers: 2,
       ...config,
-    }
+    },
   };
-
-  return sessionControls.create<GamePayloadDTO, GameDTO>(body);
 }
 
 export async function find(filter: any): Promise<GameDTO[]> {

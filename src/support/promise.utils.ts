@@ -5,3 +5,7 @@ export function parseResponseError(error): string {
 
   return error?.message || error;
 }
+
+export async function deferPromises(queue: Promise<any>[]) {
+  return Promise.allSettled(queue);
+}

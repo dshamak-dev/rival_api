@@ -34,7 +34,7 @@ app.get(`/client.js`, (req, res) => {
   let fileString = fs.readFileSync(scriptPath).toString();
 
   if (fileString) {
-    const rootUrl = `${req.protocol}://${req.headers.host}`;
+    const rootUrl = `${isProd ? 'https' :req.protocol}://${req.headers.host}`;
     fileString = fileString.replace('{ ENV_PATH }', rootUrl);
   }
 

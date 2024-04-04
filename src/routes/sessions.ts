@@ -1,9 +1,15 @@
 import express from "express";
 import cors from "cors";
 import { addListener, removeListener } from "core/broadcast/oberver";
-import { SessionDTO } from "core/session/model";
+import { SessionDTO, SessionType } from "core/session/model";
 import repository from "core/session/repository";
 import * as templateActions from "core/template/actions";
+import {
+  createSession,
+  editSession,
+  resolveUserAction,
+} from "core/session/actions";
+import { getUserCredentials } from "core/user/actions";
 
 const router = express.Router();
 
@@ -19,6 +25,59 @@ router.get(rootPath + "/", async (req, res) => {
   const result = await repository.find(params);
 
   res.json(result).status(200);
+});
+
+router.get("/sessions/:id", async (req, res) => {
+  const sessionId = req.params.id;
+
+  const result = await repository.findOne({ _id: sessionId });
+
+  res.json(result).status(200);
+});
+
+router.get("/session", async (req, res) => {
+  const filter = req.query;
+
+  const result = await repository.findOne(filter);
+
+  res.json(result).status(200);
+});
+
+router.post(`${rootPath}`, async (req, res) => {
+  const payload = req.body;
+
+  let [error, session] = await createSession(payload)
+    .then((session) => {
+      return [null, session];
+    })
+    .catch((error) => {
+      return [error, null];
+    });
+
+  if (error || !session) {
+    return res.status(400).end(error || "Invalid data");
+  }
+
+  return res.status(201).json(session);
+});
+
+router.put(`/sessions/:id`, async (req, res) => {
+  const sessionId = req.params.id;
+  const payload = req.body;
+
+  let [error, session] = await editSession(sessionId, payload)
+    .then((session) => {
+      return [null, session];
+    })
+    .catch((error) => {
+      return [error, null];
+    });
+
+  if (error || !session) {
+    return res.status(400).end(error || "Invalid data");
+  }
+
+  return res.status(200).json(session);
 });
 
 router.delete(`${rootPath}/:id`, async (req, res) => {
@@ -56,6 +115,41 @@ router.post(`${rootPath}/connect`, async (req, res) => {
   return res.end("Invalid data").status(400);
 });
 
+// user actions
+router.post("/sessions/:id/user/:action", async (req, res) => {
+  const { id, action } = req.params;
+  const decoded: any = getUserCredentials(req);
+  const userId = decoded?.id;
+
+  if (!userId) {
+    return res.status(400).end("Unauthorized");
+  }
+
+  if (!id) {
+    return res.status(400).end("Invalid session");
+  }
+
+  const session = await repository.findOne({ _id: id }).catch((error) => null);
+
+  if (!session) {
+    return res.status(400).end("Invalid session");
+  }
+
+  const [error, payload] = await resolveUserAction(id, userId, {
+    type: action,
+    payload: req.body,
+  })
+    .then((res) => [null, res])
+    .catch((error) => [error.message, null]);
+
+  if (error) {
+    return res.status(400).end(error || "Invalid action");
+  }
+
+  res.status(200).json(payload);
+});
+
+// Broadcast
 router.get(`${rootPath}/:id/stream`, async (req, res) => {
   const sessionId = req.params.id;
 
@@ -69,7 +163,7 @@ router.get(`${rootPath}/:id/stream`, async (req, res) => {
     res.write(encoder.encode("data: " + JSON.stringify(data) + "\n\n"));
   }
 
-  addListener('session', sessionId, handleEvent);
+  addListener("session", sessionId, handleEvent);
 
   res.once("close", () => {
     removeListener(`session-${sessionId}`, handleEvent);

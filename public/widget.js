@@ -514,7 +514,9 @@
         this.user.logged = true;
       }
       this.el.update();
-      if (payload.offer && this.user && this.user?.value != payload.offer) {
+      const userValue = payload.user?.value;
+      const offer = payload.offer;
+      if (offer && userValue != offer) {
         this.el.showDetails();
       }
     }

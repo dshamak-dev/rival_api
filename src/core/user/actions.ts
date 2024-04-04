@@ -16,6 +16,10 @@ export async function addSession(userId, sessionId) {
   return controls.addToArray(userId, "sessions", [sessionId]);
 }
 
+export async function removeSession(userId, sessionId) {
+  return repository.removeFromArray({_id: userId}, "sessions", sessionId);
+}
+
 export async function addUserAssets(userId, value) {
   const user = await repository.incrementNumber(
     { _id: userId },
