@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import { addListener, removeListener } from "core/broadcast/oberver";
+import { addListener, emitEvent, removeListener } from "core/broadcast/oberver";
 import { SessionDTO, SessionType } from "core/session/model";
 import repository from "core/session/repository";
 import * as templateActions from "core/template/actions";
@@ -10,6 +10,7 @@ import {
   resolveUserAction,
 } from "core/session/actions";
 import { getUserCredentials } from "core/user/actions";
+import * as betSupport from "prefabs/bet/support";
 
 const router = express.Router();
 
@@ -140,16 +141,56 @@ router.post("/sessions/:id/user/:action", async (req, res) => {
     payload: req.body,
   })
     .then((res) => [null, res])
-    .catch((error) => [error.message, null]);
+    .catch((error) => [error?.message || error, null]);
 
   if (error) {
     return res.status(400).end(error || "Invalid action");
+  }
+
+  if (id) {
+    emitEvent("session", id, payload);
   }
 
   res.status(200).json(payload);
 });
 
 // Broadcast
+router.get(`${rootPath}/:id/broadcast`, async (req, res) => {
+  const sessionId = req.params.id;
+
+  if (!sessionId) {
+    return res.json({ message: "No access" }).status(400);
+  }
+
+  const encoder = new TextEncoder();
+
+  const decoded: any = getUserCredentials(req);
+
+  function handleEvent(data: SessionDTO) {
+    const payload = data.type === SessionType.Bet ? betSupport.parse(data, decoded) : data;
+
+    res.write(encoder.encode("data: " + JSON.stringify(payload) + "\n\n"));
+  }
+
+  addListener("session", sessionId, handleEvent);
+
+  res.once("close", () => {
+    removeListener(`session-${sessionId}`, handleEvent);
+  });
+
+  Object.entries({
+    "Access-Control-Allow-Origin": req.headers.origin,
+    "Content-Type": "text/event-stream; charset=utf-8",
+    Connection: "keep-alive",
+    "Access-Control-Allow-Credentials": "true",
+    "Cache-Control": "no-cache, no-transform",
+    "X-Accel-Buffering": "no",
+    "Content-Encoding": "none",
+  }).forEach(([key, value]) => {
+    res.setHeader(key, value);
+  });
+});
+
 router.get(`${rootPath}/:id/stream`, async (req, res) => {
   const sessionId = req.params.id;
 
@@ -170,9 +211,10 @@ router.get(`${rootPath}/:id/stream`, async (req, res) => {
   });
 
   Object.entries({
-    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Origin": req.headers.origin,
     "Content-Type": "text/event-stream; charset=utf-8",
     Connection: "keep-alive",
+    "Access-Control-Allow-Credentials": "true",
     "Cache-Control": "no-cache, no-transform",
     "X-Accel-Buffering": "no",
     "Content-Encoding": "none",

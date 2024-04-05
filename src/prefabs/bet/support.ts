@@ -100,94 +100,36 @@ export async function createRewardTransactions(
   );
   return deferPromises(transactionsPayload.map(createTransaction));
 }
-// export async function setSessionActiveStage(
-//   _id: SessionDTO["_id"]
-// ): Promise<SessionDTO | null> {
-//   // 1 - get session
-//   const session = await findSession({ _id });
 
-//   if (!session) {
-//     return Promise.reject("Invalid session id");
-//   }
+export function parse(session, targetUser = null) {
+  const {
+    _id,
+    users,
+    capacity,
+    config,
+    state,
+    title,
+    details,
+    result
+  } = session;
 
-//   // 4 - calculate options summ and percent for each user
-//   let error = null;
-//   const sessionSummary = await calculateWagerSummary(session).catch((err) => {
-//     error = err;
-//     return null;
-//   });
+  const payload = {
+    title,
+    details,
+    result,
+    options: config?.options || [],
+    id: _id,
+    users: users?.length || 0,
+    capacity: capacity || "∞",
+    user: null,
+    state: null,
+  };
 
-//   if (error || !sessionSummary) {
-//     return Promise.reject(error || "Invalid session data");
-//   }
+  if (targetUser) {
+    const userId = targetUser._id || targetUser.id;
+    payload.user = targetUser;
+    payload.state = state?.users ? state.users[userId] : null;
+  }
 
-//   const {
-//     total,
-//     validTransactions,
-//     invalidUsers,
-//     optionsSummary,
-//     usersSummary,
-//   } = sessionSummary;
-
-//   if (
-//     !total ||
-//     !validTransactions?.length ||
-//     isEmptyObject(usersSummary) ||
-//     isEmptyObject(optionsSummary)
-//   ) {
-//     return Promise.reject(error || "Invalid session data");
-//   }
-
-//   const { transactions = [], users } = session;
-
-//   // remove invalid transactions
-//   const invalidTransactions = transactions.filter(
-//     (it) => !validTransactions.includes(stringifyObjectId(it))
-//   );
-//   await execPromiseQueue(
-//     invalidTransactions.map((it) => {
-//       return () => deleteSessionTransaction(_id, it);
-//     })
-//   );
-
-//   // remove invalid users
-//   const usersToStay = Object.keys(usersSummary);
-
-//   const usersToLeave = users.filter(
-//     (it) => !usersToStay.includes(stringifyObjectId(it))
-//   );
-//   const results = await execPromiseQueue(
-//     usersToLeave.map((userId) => {
-//       return () => requestSessionLeave(_id, stringifyObjectId(userId));
-//     })
-//   );
-
-//   const currentSession = await findSession({ _id });
-
-//   if (!currentSession) {
-//     return Promise.reject(error || "Something went wrong!");
-//   }
-
-//   // 2 - confirm transactions
-//   await execPromiseQueue(
-//     validTransactions.map((it) => {
-//       return () => confirmTransaction(it);
-//     })
-//   );
-
-//   // set active stage
-//   const payload = {
-//     stage: SessionStageType.Active,
-//     data: {
-//       ...currentSession.data,
-//       total,
-//       optionsSummary,
-//       usersSummary,
-//     },
-//   };
-
-//   // 7 - save updates
-//   const updated = await updateOneSession(_id, payload);
-
-//   return parseMongoModel(updated);
-// }
+  return payload;
+}

@@ -106,3 +106,13 @@ export function findInSession(session: SessionDTO, params) {
 
   return user ? { id: user[0] } : null;
 }
+
+export async function validateUserAssets(userId, assets: number) {
+  const user = await findUser({ _id: userId });
+
+  if (!user || user.assets < assets) {
+    return Promise.reject(!user ? 'Invalid user' : 'No enough assets');
+  }
+
+  return user;
+}

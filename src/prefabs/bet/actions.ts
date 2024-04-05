@@ -119,6 +119,15 @@ export async function setBet(session, userId, payload) {
   const { state, users } = session;
   const { option, value } = payload;
 
+  const [assetsError, user] = await userActions
+    .validateUserAssets(userId, value)
+    .then((user) => [null, user])
+    .catch((error) => [error?.message || error, null]);
+
+  if (assetsError){
+    return Promise.reject(assetsError);
+  }
+
   if (!users?.includes(userId)) {
     await sessionControls.addUser(session._id, userId).catch((err) => null);
 
@@ -213,7 +222,7 @@ export async function end(session, userId, payload) {
     return Promise.reject("Invalid answer");
   }
 
-    // find and set winner(s)
+  // find and set winner(s)
   const winners = betSupport.getWinners(session, payload.answer);
 
   // set answer to session result

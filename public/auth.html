@@ -229,6 +229,16 @@
           const actionType = params.get("action");
           // const sessionId = params.get("sessionId");
 
+          // if (authApiUrl) {
+          //   try {
+          //     await fetch(authApiUrl, {
+          //       method: "POST",
+          //       credentials: "include",
+          //       headers: { "content-type": "application/json" },
+          //       body: JSON.stringify({ token, url: redirectUrl }),
+          //     });
+          //   } catch (err) {}
+          // }
 
           if (redirectUrl) {
             const url = new URL(redirectUrl);
@@ -245,14 +255,11 @@
         const payload = {
           email: formFields.email,
           password: formFields.password,
-          fullName: formFields.fullName
+          fullName: formFields.fullName,
         };
 
-        if (!formFields.fullName){
-          return Promise.resolve([
-            "Full Name is required",
-            null,
-          ]);
+        if (!formFields.fullName) {
+          return Promise.resolve(["Full Name is required", null]);
         }
 
         if (formFields.password !== formFields.confirm) {
@@ -283,7 +290,7 @@
             return [error, null];
           });
 
-        if (!error && user){
+        if (!error && user) {
           logIn({ email: user.email, password: user.password });
         }
 

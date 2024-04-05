@@ -8,8 +8,8 @@ router.use(cors());
 
 const rootPath = "/auth";
 
-router.delete('/auth', (req, res) => {
-  res.clearCookie('rivalAccessToken', { httpOnly: false, secure: true });
+router.delete("/auth", (req, res) => {
+  res.clearCookie("rivalAccessToken", { httpOnly: false, secure: true });
   res.status(204).end();
 });
 
@@ -28,10 +28,13 @@ router.post(`${rootPath}`, (req, res, next) => {
       if (token) {
         res.header("Authorization", `Bearer ${token}`);
         res.header("Cache-Control", `no-cache`);
-        // res.header("Set-Cookie", [
-        //   `rivalAccessToken=${token}; Path=/; Domain=.${domain}; Secure=False; SameSite=None;`,
-        // ]);
-        res.cookie("rivalAccessToken", token, { httpOnly: false, domain: `.${domain}`, secure: false })
+        res.cookie("rivalAccessToken", token, {
+          httpOnly: false,
+          domain: `.${domain}`,
+          path: "/",
+          sameSite: "none",
+          secure: false,
+        });
       }
 
       return res.json(token).status(200);
