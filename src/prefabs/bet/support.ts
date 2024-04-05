@@ -110,12 +110,14 @@ export function parse(session, targetUser = null) {
     state,
     title,
     details,
-    result
+    result,
+    stage,
   } = session;
 
   const payload = {
     title,
     details,
+    stage,
     result,
     options: config?.options || [],
     id: _id,
