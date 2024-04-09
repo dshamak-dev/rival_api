@@ -220,16 +220,40 @@ export async function setUserScore(
     updated = await controls.updateOne(sessionId, { state: statePayload });
   }
 
-  const allSet = Object.values(updated.state.users).every(({ score }) => {
-    console.log({ score });
-    return score != null;
-  });
+  const scoreTable = Object.entries(updated.state.users).reduce(
+    (acc, [id, { score }]) => {
+      const hasScore = score != null;
 
-  if (allSet) {
-    return endRound(sessionId);
+      if (acc.ok) {
+        acc.ok = hasScore;
+      }
+
+      acc.users[id] = { score };
+
+      if (hasScore) {
+        acc.maxScore = Math.max(acc.maxScore, score);
+      }
+
+      return acc;
+    },
+    { users: {}, ok: true, maxScore: 0 }
+  );
+
+  const allSet = scoreTable.ok;
+
+  if (!allSet) {
+    return updated;
   }
 
-  return updated;
+  const winners = Object.entries(scoreTable.users)
+    .filter(([id, { score }]: any) => {
+      return score === scoreTable.maxScore;
+    })
+    .map(([id]) => {
+      return id;
+    });
+
+  return resolveGame(sessionId, winners);
 }
 
 export async function discardGame(id: SessionDTO["_id"]) {
@@ -429,9 +453,6 @@ export async function endGame(id: SessionDTO["_id"]) {
     return Promise.reject(error || "Invalid data");
   }
 
-  // todo: calculate results
-  // todo: create reward transaction(s)
-
   const { title, state, users, stage } = session;
 
   if (![SessionStageType.Active].includes(stage)) {
@@ -476,7 +497,12 @@ export async function resolveGame(
     return Promise.reject(error || "Invalid data");
   }
 
-  const { title, state, users } = session;
+  const { title, state, stage, users } = session;
+
+  if (stage !== SessionStageType.Active) {
+    return Promise.reject("Invalid session stage");
+  }
+
   const offer = state.offer;
 
   const valueTotal = users.length * offer;

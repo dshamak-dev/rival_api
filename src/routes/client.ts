@@ -147,10 +147,18 @@ router.post(`${rootPath}/actions`, async (req, res) => {
       }
 
       try {
-        const targetuserId = findInSession(session, {
-          linkedId,
-          id: userId,
-        })?.id;
+        // const targetuserId = findInSession(session, {
+        //   linkedId,
+        //   id: userId,
+        // })?.id;
+        const linkedUsers = Object.entries(session.state).reduce((acc, [id, value]: any) => {
+          if (value?.linkedId){
+            acc[value.linkedId] = id;
+          }
+
+          return acc;
+        }, {});
+        const targetuserId = linkedUsers[linkedId];
 
         await setUserScore(
           sessionId,
@@ -164,25 +172,25 @@ router.post(`${rootPath}/actions`, async (req, res) => {
       }
       break;
     }
-    case "resolve": {
-      try {
-        const linkedUsers = Object.entries(session.state).reduce((acc, [id, value]: any) => {
-          if (value?.linkedId){
-            acc[value.linkedId] = id;
-          }
+    // case "resolve": {
+    //   try {
+        // const linkedUsers = Object.entries(session.state).reduce((acc, [id, value]: any) => {
+        //   if (value?.linkedId){
+        //     acc[value.linkedId] = id;
+        //   }
 
-          return acc;
-        }, {});
-        const sessionWinners = payload.winners?.map(({ linkedId }) => {
-          return linkedUsers[linkedId];
-        });
+        //   return acc;
+        // }, {});
+    //     const sessionWinners = payload.winners?.map(({ linkedId }) => {
+    //       return linkedUsers[linkedId];
+    //     });
 
-        await resolveGame(sessionId, sessionWinners).then((updated) => {
-          session = updated;
-        });
-      } catch (error) {}
-      break;
-    }
+    //     await resolveGame(sessionId, sessionWinners).then((updated) => {
+    //       session = updated;
+    //     });
+    //   } catch (error) {}
+    //   break;
+    // }
     default: {
       session = null;
     }
