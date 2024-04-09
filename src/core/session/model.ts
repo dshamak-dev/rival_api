@@ -47,6 +47,7 @@ export enum SessionStageType {
   Lobby = 1,
   Active = 2,
   Close = 3,
+  Reject = 4
 }
 
 export const modelName = "Session";

@@ -8,6 +8,7 @@ export enum GameStageType {
   Lobby = 1,
   Active = 2,
   Close = 3,
+  Reject = 4,
 }
 
 export class RivalManager {
@@ -19,6 +20,7 @@ export class RivalManager {
   eventSource;
   state;
   error;
+  errors: any[] = [];
 
   constructor() {
     this.el = createView(this);
@@ -27,42 +29,71 @@ export class RivalManager {
     document.body.append(this.el);
   }
 
-  start(connectionId, playerId) {
-    this.connectionId = connectionId;
+  connect(connectionId, playerId, observer = true) {
     this.playerId = playerId;
+    this.connectionId = connectionId;
 
-    // todo: fetch game api
-    this.setState({ loading: true });
-    this.connect();
-  }
-
-  connect() {
     if (!this.templateId) {
-      console.warn("invalid template");
+      this.setError("invalid template");
       return;
     }
 
-    this.dispatchAction("connect", {
+    if (!this.playerId || !this.connectionId) {
+      this.setError("invalid connection data");
+      return;
+    }
+
+    this.setState({ loading: true });
+
+    return this.dispatchAction("connect", {
       templateId: this.templateId,
       linkedId: this.playerId,
     }).then(async (game) => {
-      if (!game || ![GameStageType.Draft, GameStageType.Lobby].includes(game?.stage)) {
+      if (
+        !game ||
+        ![GameStageType.Draft, GameStageType.Lobby].includes(game?.stage)
+      ) {
         return game;
       }
 
-      this.listen(game.id);
+      if (observer) {
+        this.listen();
+      }
+
       return game;
     });
   }
 
-  listen(sessionId) {
-    this.stopListening();
-    this.eventSource = connectEventSouce(sessionId, (message) => {
-      this.setState(message);
-    }, (error) => {
-      console.warn(error);
+  start() {
+    return this.dispatchAction("start");
+  }
+
+  discard() {
+    return this.dispatchAction("discard").then(() => {
+      this.stopListening();
     });
   }
+
+  listen() {
+    const gameId = this.state?.id;
+
+    this.stopListening();
+
+    if (!gameId) {
+      return;
+    }
+
+    this.eventSource = connectEventSouce(
+      gameId,
+      (message) => {
+        this.setState(message);
+      },
+      (error) => {
+        console.warn(error);
+      }
+    );
+  }
+
   stopListening() {
     if (this.eventSource) {
       this.eventSource.close();
@@ -70,6 +101,7 @@ export class RivalManager {
   }
 
   leave() {
+    this.stopListening();
     this.dispatchAction("disconnect").then(() => {
       clearAuth();
     });
@@ -93,8 +125,14 @@ export class RivalManager {
     const userValue = payload.user?.value;
     const offer = payload.offer;
 
-    if (offer && userValue != offer) {
-      this.el.showDetails();
+    switch (payload?.stage) {
+      case GameStageType.Draft:
+      case GameStageType.Lobby: {
+        if (offer && userValue != offer) {
+          this.el.showDetails();
+        }
+        break;
+      }
     }
   }
 
@@ -102,11 +140,11 @@ export class RivalManager {
     const value = payload != null ? Math.floor(payload) : payload;
 
     if (value !== null && value <= 0) {
-      this.setError('Only integer more than 0 accepted');
+      this.setError("Only integer more than 0 accepted");
       return this.el.update();
     }
 
-    this.dispatchAction("offer", { value }).then(res => {
+    this.dispatchAction("offer", { value }).then((res) => {
       this.el.hideDetails();
     });
   }
@@ -143,6 +181,10 @@ export class RivalManager {
   }
 
   setError(error) {
-    this.error = error;
+    if (error) {
+      this.errors.push(error);
+
+      // console.warn(error);
+    }
   }
 }

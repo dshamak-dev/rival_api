@@ -2,8 +2,20 @@ import express from "express";
 import cookieParser from "cookie-parser";
 import repository from "core/session/repository";
 import * as templateActions from "core/template/actions";
-import { decodeUserToken, findInSession, getUserCredentials } from "core/user/actions";
-import { connectUser, removeUser, setUserOffer, setUserScore } from "prefabs/game/actions";
+import {
+  decodeUserToken,
+  findInSession,
+  getUserCredentials,
+} from "core/user/actions";
+import {
+  connectUser,
+  discardGame,
+  removeUser,
+  setUserOffer,
+  setUserScore,
+  startGame,
+  startOnReady,
+} from "prefabs/game/actions";
 import { addListener, removeListener } from "core/broadcast/oberver";
 import { SessionDTO, SessionStageType } from "core/session/model";
 
@@ -19,12 +31,12 @@ router.post(`${rootPath}/actions`, async (req, res) => {
   let session = await repository.findOne({ tag });
 
   res.set({
-    'Access-Control-Allow-Origin': req.headers.origin,
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Credentials': 'true',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, Credentials',
-    'Access-Control-Max-Age': 86400
-});
+    "Access-Control-Allow-Origin": req.headers.origin,
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+    "Access-Control-Allow-Credentials": "true",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, Credentials",
+    "Access-Control-Max-Age": 86400,
+  });
 
   if (!session && !templateId) {
     return res.end("Invalid data").status(400);
@@ -40,7 +52,9 @@ router.post(`${rootPath}/actions`, async (req, res) => {
   switch (type) {
     case "connect": {
       if (!session) {
-        session = await templateActions.createFromTemplate(templateId, { tag }).catch(err => null);
+        session = await templateActions
+          .createFromTemplate(templateId, { tag })
+          .catch((err) => null);
       }
 
       if (session && decoded?.id) {
@@ -56,13 +70,13 @@ router.post(`${rootPath}/actions`, async (req, res) => {
     }
     case "disconnect": {
       if (!session) {
-        break
+        break;
       }
 
       const userQuery = {
         id: decoded?.id,
-        linkedId: linkedId
-      }
+        linkedId: linkedId,
+      };
 
       const targetUserId = findInSession(session, userQuery)?.id;
 
@@ -83,7 +97,12 @@ router.post(`${rootPath}/actions`, async (req, res) => {
         break;
       }
 
-      await setUserOffer(sessionId, userId, Number(payload.value) || null, true)
+      await setUserOffer(
+        sessionId,
+        userId,
+        Number(payload.value) || null,
+        false
+      )
         .then((updated) => {
           session = updated;
         })
@@ -93,13 +112,44 @@ router.post(`${rootPath}/actions`, async (req, res) => {
         });
       break;
     }
+    case "start": {
+      if (!inGame) {
+        break;
+      }
+
+      await startGame(session?._id)
+        .then((updated) => {
+          session = updated;
+        })
+        .catch((error) => {
+          actionError = error;
+        });
+      break;
+    }
+    case "discard": {
+      if (!inGame) {
+        break;
+      }
+
+      await discardGame(session?._id)
+        .then((updated) => {
+          session = updated;
+        })
+        .catch((error) => {
+          actionError = error;
+        });
+      break;
+    }
     case "score": {
       if (!inGame) {
         break;
       }
 
       try {
-        const targetuserId = findInSession(session, { linkedId, id: userId })?.id;
+        const targetuserId = findInSession(session, {
+          linkedId,
+          id: userId,
+        })?.id;
 
         await setUserScore(
           sessionId,
@@ -112,6 +162,9 @@ router.post(`${rootPath}/actions`, async (req, res) => {
         console.log("score error", error);
       }
       break;
+    }
+    default: {
+      session = null;
     }
   }
 
@@ -156,7 +209,7 @@ router.get(`${rootPath}/:sessionId/broadcast`, async (req, res) => {
   });
 
   Object.entries({
-    "Access-Control-Allow-Origin": req.headers.origin,
+    "Access-Control-Allow-Origin": req.headers.origin || "*",
     "Access-Control-Allow-Credentials": "true",
     "Content-Type": "text/event-stream; charset=utf-8",
     Connection: "keep-alive",
@@ -177,15 +230,16 @@ function getGameUserState(session, user = null) {
 
   const inSession = findInSession(session, user)?.id != null;
 
-  let userState = inSession && user
-    ? {
-        id: user.id,
-        email: user.email,
-        value: null,
-        winState: null,
-        total: null,
-      }
-    : null;
+  let userState =
+    inSession && user
+      ? {
+          id: user.id,
+          email: user.email,
+          value: null,
+          winState: null,
+          total: null,
+        }
+      : null;
 
   if (state?.users && user?.id) {
     userState.value = state?.users[user?.id]?.value;

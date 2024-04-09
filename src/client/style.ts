@@ -10,9 +10,7 @@ export default `<style>
 
     display: none;
 
-    background: black;
-    color: white;
-    border: 1px solid currentColor;
+    color: black;
   }
   #rival-widget.visible {
     display: block;
@@ -191,6 +189,17 @@ export default `<style>
   }
   .gap-8 {
     gap: 2rem;
+  }
+  .p-4 {
+    padding: 1rem;
+  }
+  .px-4 {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  .py-2 {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
   }
 
   .grow {

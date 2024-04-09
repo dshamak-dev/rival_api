@@ -91,6 +91,10 @@ export async function setUserOffer(
     return Promise.reject(error || "Invalid data");
   }
 
+  if (![SessionStageType.Draft, SessionStageType.Lobby].includes(session.stage)){
+    return Promise.reject( "Bets are not accepted anymore");
+  }
+
   // todo: validate user in game
   // todo: validate available user assets
 
@@ -185,6 +189,10 @@ export async function setUserScore(
 
   const { state, stage } = session;
 
+  if (![SessionStageType.Active].includes(session.stage)){
+    return Promise.reject("Session is not active");
+  }
+
   if (stage === SessionStageType.Close) {
     return session;
   }
@@ -219,6 +227,21 @@ export async function setUserScore(
   }
 
   return updated;
+}
+
+export async function discardGame(id: SessionDTO["_id"]) {
+  const [error, session] = await controls.findById(id);
+
+  if (error) {
+    return Promise.reject(error);
+  }
+
+  const { stage } = session;
+  if (![SessionStageType.Draft, SessionStageType.Lobby].includes(stage)) {
+    return Promise.reject("Game can\'t be discarded");
+  }
+
+  return controls.updateOne(id, { stage: SessionStageType.Reject });
 }
 
 export async function startGame(id: SessionDTO["_id"]) {

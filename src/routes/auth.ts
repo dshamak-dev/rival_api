@@ -32,7 +32,6 @@ router.post(`${rootPath}`, (req, res, next) => {
           httpOnly: false,
           domain: `.${domain}`,
           path: "/",
-          sameSite: "none",
           secure: false,
         });
       }

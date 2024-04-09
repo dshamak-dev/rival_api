@@ -93,9 +93,7 @@
 
     display: none;
 
-    background: black;
-    color: white;
-    border: 1px solid currentColor;
+    color: black;
   }
   #rival-widget.visible {
     display: block;
@@ -275,6 +273,17 @@
   .gap-8 {
     gap: 2rem;
   }
+  .p-4 {
+    padding: 1rem;
+  }
+  .px-4 {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  .py-2 {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
 
   .grow {
     flex-grow: 1;
@@ -311,11 +320,22 @@
       this.widget.classList.add("visible");
       const isLoggedIn = this.manager.user?.logged;
       const authUrl = getAuthLink(this.manager);
+      const stage = this.manager.state?.stage;
       if (!isLoggedIn) {
         this.widget.innerHTML = `<a class="button primary" href="${authUrl}">join the rival</a>`;
       } else {
-        this.widget.onclick = this.showDetails.bind(this);
-        this.widget.innerHTML = `<button>open details</button>`;
+        switch (stage) {
+          case 4 /* Reject */: {
+            this.widget.innerHTML = `<i class="px-4">no bets</i>`;
+            break;
+          }
+          default: {
+            const stageLabel = getStageDetails(stage);
+            this.widget.onclick = this.showDetails.bind(this);
+            this.widget.innerHTML = `<i class="px-4">${stageLabel}</i><br /><button>open details</button>`;
+            break;
+          }
+        }
       }
       const isVisible = this.popup.classList.contains("visible");
       if (isVisible) {
@@ -364,11 +384,22 @@
     );
     const canChange = isLoggedIn && gamePending;
     const hasSameBid = offer === user?.value;
+    let showStats = true;
     let gameStageLabel = null;
-    if (stage === 2 /* Active */) {
-      gameStageLabel = "in progress";
-    } else if (stage === 3 /* Close */) {
-      gameStageLabel = "game ended";
+    switch (stage) {
+      case 2 /* Active */: {
+        gameStageLabel = "in progress";
+        break;
+      }
+      case 3 /* Close */: {
+        gameStageLabel = "game ended";
+        break;
+      }
+      case 4 /* Reject */: {
+        gameStageLabel = "offer was rejected";
+        showStats = false;
+        break;
+      }
     }
     const errorMessage = manager.error?.message || manager.error;
     const gameValue = gamePending ? offer || 0 : total;
@@ -383,21 +414,21 @@
               <strong class="value">${manager.user.email}</strong>
               <label class="label">current user</label>
             </div>` : ""}
-      <div class="field">
-        ${canChange ? `<form id="offer-form">
-                <input 
-                  required 
-                  name="value" 
-                  id="offer-input" 
-                  type="number" 
-                  class="number value text-2xl" 
-                  min="1" 
-                  step="1" 
-                  value=${offer}
-                />
-            </form>` : `<strong class="value text-2xl number">${gameValue}</strong>`}
-        <label class="label">${gameValueLabel}</label>
-      </div>
+      ${showStats ? `<div class="field">
+      ${canChange ? `<form id="offer-form">
+              <input 
+                required 
+                name="value" 
+                id="offer-input" 
+                type="number" 
+                class="number value text-2xl" 
+                min="1" 
+                step="1" 
+                value=${offer}
+              />
+          </form>` : `<strong class="value text-2xl number">${gameValue}</strong>`}
+      <label class="label">${gameValueLabel}</label>
+    </div>` : ""}
       ${gameStageLabel ? `<div class="text-center"><label>${gameStageLabel}</label></div>` : ""}
       ${errorMessage ? `<div class="error text-xs text-center">${errorMessage}</div>` : ""}
     `;
@@ -419,6 +450,13 @@
       return;
     }
     if (!canChange) {
+      const closeBtn = document.createElement("button");
+      closeBtn.classList.add("primary");
+      closeBtn.innerText = "ok";
+      closeBtn.onclick = () => {
+        this.hideDetails();
+      };
+      targetEl.append(closeBtn);
       return;
     }
     const leaveEl = document.createElement("a");
@@ -450,49 +488,83 @@
     rejectBtn.classList.add("secondary");
     rejectBtn.innerText = "reject";
     rejectBtn.onclick = () => {
-      manager.setPlayerOffer(null);
+      manager.discard();
     };
     controlsEl.append(rejectBtn);
     targetEl.append(controlsEl);
+  }
+  function getStageDetails(stage) {
+    switch (stage) {
+      case 0 /* Draft */:
+      case 1 /* Lobby */: {
+        return "want a challenge?";
+      }
+      case 2 /* Active */: {
+        return "challenge accepted";
+      }
+      case 3 /* Close */: {
+        return "challenge resolved";
+      }
+    }
   }
 
   // src/client/model.ts
   var TEMPLATE_ID = document?.currentScript?.getAttribute("data-template");
   var RivalManager2 = class {
     constructor() {
+      this.errors = [];
       this.el = createView(this);
       this.templateId = TEMPLATE_ID;
       document.body.append(this.el);
     }
-    start(connectionId, playerId) {
-      this.connectionId = connectionId;
+    connect(connectionId, playerId, observer = true) {
       this.playerId = playerId;
-      this.setState({ loading: true });
-      this.connect();
-    }
-    connect() {
+      this.connectionId = connectionId;
       if (!this.templateId) {
-        console.warn("invalid template");
+        this.setError("invalid template");
         return;
       }
-      this.dispatchAction("connect", {
+      if (!this.playerId || !this.connectionId) {
+        this.setError("invalid connection data");
+        return;
+      }
+      this.setState({ loading: true });
+      return this.dispatchAction("connect", {
         templateId: this.templateId,
         linkedId: this.playerId
       }).then(async (game) => {
         if (!game || ![0 /* Draft */, 1 /* Lobby */].includes(game?.stage)) {
           return game;
         }
-        this.listen(game.id);
+        if (observer) {
+          this.listen();
+        }
         return game;
       });
     }
-    listen(sessionId) {
-      this.stopListening();
-      this.eventSource = connectEventSouce(sessionId, (message) => {
-        this.setState(message);
-      }, (error) => {
-        console.warn(error);
+    start() {
+      return this.dispatchAction("start");
+    }
+    discard() {
+      return this.dispatchAction("discard").then(() => {
+        this.stopListening();
       });
+    }
+    listen() {
+      const gameId = this.state?.id;
+      this.stopListening();
+      if (!gameId) {
+        return;
+      }
+      this.eventSource = connectEventSouce(
+        gameId,
+        (message) => {
+          this.setState(message);
+        },
+        (error) => {
+          console.warn(error);
+        }
+      );
     }
     stopListening() {
       if (this.eventSource) {
@@ -500,6 +572,7 @@
       }
     }
     leave() {
+      this.stopListening();
       this.dispatchAction("disconnect").then(() => {
         clearAuth();
       });
@@ -516,8 +589,14 @@
       this.el.update();
       const userValue = payload.user?.value;
       const offer = payload.offer;
-      if (offer && userValue != offer) {
-        this.el.showDetails();
+      switch (payload?.stage) {
+        case 0 /* Draft */:
+        case 1 /* Lobby */: {
+          if (offer && userValue != offer) {
+            this.el.showDetails();
+          }
+          break;
+        }
       }
     }
     setPlayerOffer(payload) {
@@ -554,7 +633,9 @@
       });
     }
     setError(error) {
-      this.error = error;
+      if (error) {
+        this.errors.push(error);
+      }
     }
   };
 
