@@ -21,6 +21,7 @@ export class RivalManager {
   state;
   error;
   errors: any[] = [];
+  inLobby = false;
 
   constructor() {
     this.el = createView(this);
@@ -29,7 +30,7 @@ export class RivalManager {
     document.body.append(this.el);
   }
 
-  connect(connectionId, playerId, observer = true) {
+  async connect(connectionId, playerId, observer = true) {
     this.playerId = playerId;
     this.connectionId = connectionId;
 
@@ -45,23 +46,29 @@ export class RivalManager {
 
     this.setState({ loading: true });
 
-    return this.dispatchAction("connect", {
+    const game = await this.dispatchAction("connect", {
       templateId: this.templateId,
       linkedId: this.playerId,
-    }).then(async (game) => {
-      if (
-        !game ||
-        ![GameStageType.Draft, GameStageType.Lobby].includes(game?.stage)
-      ) {
+    })
+      .then(async (game) => {
+        if (
+          !game ||
+          ![GameStageType.Draft, GameStageType.Lobby].includes(game?.stage)
+        ) {
+          return game;
+        }
+
         return game;
-      }
+      })
+      .catch((err) => null);
 
-      if (observer) {
-        this.listen();
-      }
-
-      return game;
-    });
+    if (
+      game &&
+      observer &&
+      ![GameStageType.Close, GameStageType.Reject].includes(game.stage)
+    ) {
+      this.listen();
+    }
   }
 
   start() {
@@ -124,6 +131,8 @@ export class RivalManager {
 
     const userValue = payload.user?.value;
     const offer = payload.offer;
+
+    this.inLobby = [GameStageType.Draft, GameStageType.Lobby].includes(this.state?.stage)
 
     switch (payload?.stage) {
       case GameStageType.Draft:

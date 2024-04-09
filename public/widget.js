@@ -513,11 +513,12 @@
   var RivalManager2 = class {
     constructor() {
       this.errors = [];
+      this.inLobby = false;
       this.el = createView(this);
       this.templateId = TEMPLATE_ID;
       document.body.append(this.el);
     }
-    connect(connectionId, playerId, observer = true) {
+    async connect(connectionId, playerId, observer = true) {
       this.playerId = playerId;
       this.connectionId = connectionId;
       if (!this.templateId) {
@@ -529,18 +530,18 @@
         return;
       }
       this.setState({ loading: true });
-      return this.dispatchAction("connect", {
+      const game = await this.dispatchAction("connect", {
         templateId: this.templateId,
         linkedId: this.playerId
-      }).then(async (game) => {
-        if (!game || ![0 /* Draft */, 1 /* Lobby */].includes(game?.stage)) {
-          return game;
+      }).then(async (game2) => {
+        if (!game2 || ![0 /* Draft */, 1 /* Lobby */].includes(game2?.stage)) {
+          return game2;
         }
-        if (observer) {
-          this.listen();
-        }
-        return game;
-      });
+        return game2;
+      }).catch((err) => null);
+      if (game && observer && ![3 /* Close */, 4 /* Reject */].includes(game.stage)) {
+        this.listen();
+      }
     }
     start() {
       return this.dispatchAction("start");
@@ -589,6 +590,7 @@
       this.el.update();
       const userValue = payload.user?.value;
       const offer = payload.offer;
+      this.inLobby = [0 /* Draft */, 1 /* Lobby */].includes(this.state?.stage);
       switch (payload?.stage) {
         case 0 /* Draft */:
         case 1 /* Lobby */: {
