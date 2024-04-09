@@ -22,6 +22,7 @@ export class RivalManager {
   error;
   errors: any[] = [];
   inLobby = false;
+  isActive = false;
 
   constructor() {
     this.el = createView(this);
@@ -69,9 +70,15 @@ export class RivalManager {
     ) {
       this.listen();
     }
+
+    return game;
   }
 
   start() {
+    if (![GameStageType.Draft, GameStageType.Lobby].includes(this.state.stage)) {
+      return;
+    }
+
     return this.dispatchAction("start");
   }
 
@@ -132,7 +139,10 @@ export class RivalManager {
     const userValue = payload.user?.value;
     const offer = payload.offer;
 
-    this.inLobby = [GameStageType.Draft, GameStageType.Lobby].includes(this.state?.stage)
+    this.inLobby = [GameStageType.Draft, GameStageType.Lobby].includes(
+      this.state?.stage
+    );
+    this.isActive = [GameStageType.Active].includes(this.state?.stage);
 
     switch (payload?.stage) {
       case GameStageType.Draft:
@@ -140,6 +150,10 @@ export class RivalManager {
         if (offer && userValue != offer) {
           this.el.showDetails();
         }
+        break;
+      }
+      case GameStageType.Close: {
+        this.el.showDetails();
         break;
       }
     }
@@ -160,6 +174,13 @@ export class RivalManager {
 
   setPlayerScore(scoreValue) {
     this.dispatchAction("score", { score: scoreValue });
+  }
+
+  resolve(winners) {
+    const sessionWinners = winners.map((linkedId) => {
+      return { linkedId };
+    });
+    this.dispatchAction("resolve", { winners: sessionWinners });
   }
 
   end() {

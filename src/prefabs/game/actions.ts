@@ -75,7 +75,7 @@ export async function setUserOffer(
     return Promise.reject("Invalid user");
   }
 
-  const user = await userActions.findUser({_id: userId}).catch(err => null);
+  const user = await userActions.findUser({ _id: userId }).catch((err) => null);
 
   if (!user) {
     return Promise.reject("Invalid user");
@@ -91,8 +91,10 @@ export async function setUserOffer(
     return Promise.reject(error || "Invalid data");
   }
 
-  if (![SessionStageType.Draft, SessionStageType.Lobby].includes(session.stage)){
-    return Promise.reject( "Bets are not accepted anymore");
+  if (
+    ![SessionStageType.Draft, SessionStageType.Lobby].includes(session.stage)
+  ) {
+    return Promise.reject("Bets are not accepted anymore");
   }
 
   // todo: validate user in game
@@ -189,7 +191,7 @@ export async function setUserScore(
 
   const { state, stage } = session;
 
-  if (![SessionStageType.Active].includes(session.stage)){
+  if (![SessionStageType.Active].includes(session.stage)) {
     return Promise.reject("Session is not active");
   }
 
@@ -218,9 +220,10 @@ export async function setUserScore(
     updated = await controls.updateOne(sessionId, { state: statePayload });
   }
 
-  const allSet = Object.values(updated.state.users).every(
-    ({ score }) => score != null
-  );
+  const allSet = Object.values(updated.state.users).every(({ score }) => {
+    console.log({ score });
+    return score != null;
+  });
 
   if (allSet) {
     return endRound(sessionId);
@@ -238,7 +241,7 @@ export async function discardGame(id: SessionDTO["_id"]) {
 
   const { stage } = session;
   if (![SessionStageType.Draft, SessionStageType.Lobby].includes(stage)) {
-    return Promise.reject("Game can\'t be discarded");
+    return Promise.reject("Game can't be discarded");
   }
 
   return controls.updateOne(id, { stage: SessionStageType.Reject });
@@ -437,8 +440,6 @@ export async function endGame(id: SessionDTO["_id"]) {
 
   const { rounds } = state;
 
-  const offer = state.offer;
-
   const userCounter: Record<UserDTO["_id"], number> = {};
 
   let maxCounter = 0;
@@ -461,17 +462,34 @@ export async function endGame(id: SessionDTO["_id"]) {
       return counter === maxCounter;
     })
     .map(([userId]) => userId);
+
+  return resolveGame(session._id, gameWinners);
+}
+
+export async function resolveGame(
+  id: SessionDTO["_id"],
+  winners: UserDTO["_id"][]
+) {
+  const [error, session] = await controls.findById(id);
+
+  if (error) {
+    return Promise.reject(error || "Invalid data");
+  }
+
+  const { title, state, users } = session;
+  const offer = state.offer;
+
   const valueTotal = users.length * offer;
-  const valuePerWinner = valueTotal / gameWinners.length;
+  const valuePerWinner = valueTotal / winners.length;
 
   const resultPayload: GameResultDTO = {
-    winners: gameWinners,
+    winners: winners,
     valueTotal,
     valuePerWinner,
   };
 
   const rewardTransactions: TransactionDTO[] = await Promise.all(
-    gameWinners.map((userId) => {
+    winners.map((userId) => {
       return transactionActions.createTransaction({
         value: valuePerWinner,
         sourceId: id,
@@ -482,10 +500,6 @@ export async function endGame(id: SessionDTO["_id"]) {
       });
     })
   );
-
-  // const transactionsPayload = transactions.concat(
-  //   rewardTransactions.map(({ _id }) => _id)
-  // );
 
   return controls.updateOne(id, {
     stage: SessionStageType.Close,

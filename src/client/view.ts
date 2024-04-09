@@ -54,7 +54,7 @@ class RivalsView extends HTMLElement {
           const stageLabel = getStageDetails(stage);
 
           this.widget.onclick = this.showDetails.bind(this);
-          this.widget.innerHTML = `<i class="px-4">${stageLabel}</i><br /><button>open details</button>`;
+          this.widget.innerHTML = `<i>${stageLabel}</i><br /><button>open details</button>`;
           break;
         }
       }
@@ -116,9 +116,12 @@ function renderDetails(manager: RivalManager, targetEl) {
   const isLoggedIn = manager.user?.logged;
   const authUrl = getAuthLink(manager);
 
-  const { offer, stage, user, total } = manager.state;
+  const { offer, stage, user, total, result } = manager.state;
 
   const gamePending = [GameStageType.Draft, GameStageType.Lobby].includes(
+    stage
+  );
+  const gameClosed = [GameStageType.Close].includes(
     stage
   );
   const canChange = isLoggedIn && gamePending;
@@ -133,7 +136,9 @@ function renderDetails(manager: RivalManager, targetEl) {
       break;
     }
     case GameStageType.Close: {
-      gameStageLabel = "game ended";
+      const isWinner = user?.winState;
+
+      gameStageLabel = `you ${isWinner ? `won` : 'lost'}`;
       break;
     }
     case GameStageType.Reject: {
@@ -144,7 +149,7 @@ function renderDetails(manager: RivalManager, targetEl) {
   }
 
   const errorMessage = manager.error?.message || manager.error;
-  const gameValue = gamePending ? offer || 0 : total;
+  const gameValue = gamePending ? offer || 0 : gameClosed ? user.total || 0  : total;
   const gameValueLabel = gamePending ? "current offer" : "total prize";
 
   targetEl.innerHTML = "";
@@ -286,7 +291,7 @@ function getStageDetails(stage) {
   switch (stage) {
     case GameStageType.Draft:
     case GameStageType.Lobby: {
-      return "want a challenge?";
+      return "challenge the rival!";
     }
     case GameStageType.Active: {
       return "challenge accepted";

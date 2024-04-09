@@ -11,6 +11,7 @@ import {
   connectUser,
   discardGame,
   removeUser,
+  resolveGame,
   setUserOffer,
   setUserScore,
   startGame,
@@ -161,6 +162,25 @@ router.post(`${rootPath}/actions`, async (req, res) => {
       } catch (error) {
         console.log("score error", error);
       }
+      break;
+    }
+    case "resolve": {
+      try {
+        const linkedUsers = Object.entries(session.state).reduce((acc, [id, value]: any) => {
+          if (value?.linkedId){
+            acc[value.linkedId] = id;
+          }
+
+          return acc;
+        }, {});
+        const sessionWinners = payload.winners?.map(({ linkedId }) => {
+          return linkedUsers[linkedId];
+        });
+
+        await resolveGame(sessionId, sessionWinners).then((updated) => {
+          session = updated;
+        });
+      } catch (error) {}
       break;
     }
     default: {

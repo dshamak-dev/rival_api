@@ -332,7 +332,7 @@
           default: {
             const stageLabel = getStageDetails(stage);
             this.widget.onclick = this.showDetails.bind(this);
-            this.widget.innerHTML = `<i class="px-4">${stageLabel}</i><br /><button>open details</button>`;
+            this.widget.innerHTML = `<i>${stageLabel}</i><br /><button>open details</button>`;
             break;
           }
         }
@@ -378,8 +378,11 @@
     }
     const isLoggedIn = manager.user?.logged;
     const authUrl = getAuthLink(manager);
-    const { offer, stage, user, total } = manager.state;
+    const { offer, stage, user, total, result } = manager.state;
     const gamePending = [0 /* Draft */, 1 /* Lobby */].includes(
+      stage
+    );
+    const gameClosed = [3 /* Close */].includes(
       stage
     );
     const canChange = isLoggedIn && gamePending;
@@ -392,7 +395,8 @@
         break;
       }
       case 3 /* Close */: {
-        gameStageLabel = "game ended";
+        const isWinner = user?.winState;
+        gameStageLabel = `you ${isWinner ? `won` : "lost"}`;
         break;
       }
       case 4 /* Reject */: {
@@ -402,7 +406,7 @@
       }
     }
     const errorMessage = manager.error?.message || manager.error;
-    const gameValue = gamePending ? offer || 0 : total;
+    const gameValue = gamePending ? offer || 0 : gameClosed ? user.total || 0 : total;
     const gameValueLabel = gamePending ? "current offer" : "total prize";
     targetEl.innerHTML = "";
     targetEl.innerHTML = `
@@ -497,7 +501,7 @@
     switch (stage) {
       case 0 /* Draft */:
       case 1 /* Lobby */: {
-        return "want a challenge?";
+        return "challenge the rival!";
       }
       case 2 /* Active */: {
         return "challenge accepted";
@@ -514,6 +518,7 @@
     constructor() {
       this.errors = [];
       this.inLobby = false;
+      this.isActive = false;
       this.el = createView(this);
       this.templateId = TEMPLATE_ID;
       document.body.append(this.el);
@@ -542,8 +547,12 @@
       if (game && observer && ![3 /* Close */, 4 /* Reject */].includes(game.stage)) {
         this.listen();
       }
+      return game;
     }
     start() {
+      if (![0 /* Draft */, 1 /* Lobby */].includes(this.state.stage)) {
+        return;
+      }
       return this.dispatchAction("start");
     }
     discard() {
@@ -590,13 +599,20 @@
       this.el.update();
       const userValue = payload.user?.value;
       const offer = payload.offer;
-      this.inLobby = [0 /* Draft */, 1 /* Lobby */].includes(this.state?.stage);
+      this.inLobby = [0 /* Draft */, 1 /* Lobby */].includes(
+        this.state?.stage
+      );
+      this.isActive = [2 /* Active */].includes(this.state?.stage);
       switch (payload?.stage) {
         case 0 /* Draft */:
         case 1 /* Lobby */: {
           if (offer && userValue != offer) {
             this.el.showDetails();
           }
+          break;
+        }
+        case 3 /* Close */: {
+          this.el.showDetails();
           break;
         }
       }
@@ -613,6 +629,12 @@
     }
     setPlayerScore(scoreValue) {
       this.dispatchAction("score", { score: scoreValue });
+    }
+    resolve(winners) {
+      const sessionWinners = winners.map((linkedId) => {
+        return { linkedId };
+      });
+      this.dispatchAction("resolve", { winners: sessionWinners });
     }
     end() {
       this.eventSource?.close();
