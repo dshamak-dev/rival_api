@@ -9,7 +9,7 @@
     "client-dev": "node ./widget.build.js --watch",
     "client-build": "node ./widget.build.js --production --minify",
     "build": "tsc && tsc-alias",
-    "test": "echo \"No test specified\""
+    "test": "ts-node  src/test/debouncer.test.ts"
   },
   "keywords": [],
   "author": "",

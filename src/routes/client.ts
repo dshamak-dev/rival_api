@@ -19,15 +19,22 @@ import {
 } from "prefabs/game/actions";
 import { addListener, removeListener } from "core/broadcast/oberver";
 import { SessionDTO, SessionStageType } from "core/session/model";
+import { Debouncer } from "support/promise.utils";
 
 const router = express.Router();
 const rootPath = "/client";
 
 router.use(cookieParser());
 
+const deboucer = new Debouncer();
+
 router.post(`${rootPath}/actions`, async (req, res) => {
   const { payload, type } = req.body;
   const { tag, templateId, linkedId } = payload;
+
+  const key = `${tag}-${type}`;
+
+  await deboucer.set(key);
 
   let session = await repository.findOne({ tag });
 
@@ -113,12 +120,12 @@ router.post(`${rootPath}/actions`, async (req, res) => {
         });
       break;
     }
-    case "start": {
+    case "discard": {
       if (!inGame) {
         break;
       }
 
-      await startGame(session?._id)
+      await discardGame(session?._id)
         .then((updated) => {
           session = updated;
         })
@@ -127,12 +134,12 @@ router.post(`${rootPath}/actions`, async (req, res) => {
         });
       break;
     }
-    case "discard": {
+    case "start": {
       if (!inGame) {
         break;
       }
 
-      await discardGame(session?._id)
+      await startGame(session?._id)
         .then((updated) => {
           session = updated;
         })
@@ -172,29 +179,31 @@ router.post(`${rootPath}/actions`, async (req, res) => {
       }
       break;
     }
-    // case "resolve": {
-    //   try {
-        // const linkedUsers = Object.entries(session.state).reduce((acc, [id, value]: any) => {
-        //   if (value?.linkedId){
-        //     acc[value.linkedId] = id;
-        //   }
+    case "resolve": {
+      try {
+        const linkedUsers = Object.entries(session.state).reduce((acc, [id, value]: any) => {
+          if (value?.linkedId){
+            acc[value.linkedId] = id;
+          }
 
-        //   return acc;
-        // }, {});
-    //     const sessionWinners = payload.winners?.map(({ linkedId }) => {
-    //       return linkedUsers[linkedId];
-    //     });
+          return acc;
+        }, {});
+        const sessionWinners = payload.winners?.map(({ linkedId }) => {
+          return linkedUsers[linkedId];
+        });
 
-    //     await resolveGame(sessionId, sessionWinners).then((updated) => {
-    //       session = updated;
-    //     });
-    //   } catch (error) {}
-    //   break;
-    // }
+        await resolveGame(sessionId, sessionWinners).then((updated) => {
+          session = updated;
+        });
+      } catch (error) {}
+      break;
+    }
     default: {
       session = null;
     }
   }
+
+  deboucer.next(key);
 
   if (!actionError && session) {
     const payload = getGameUserState(session, decoded);
@@ -269,7 +278,7 @@ function getGameUserState(session, user = null) {
         }
       : null;
 
-  if (state?.users && user?.id) {
+  if (userState && state?.users && user?.id) {
     userState.value = state?.users[user?.id]?.value;
   }
 
