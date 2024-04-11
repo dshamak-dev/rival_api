@@ -2,12 +2,16 @@ import { SessionDTO, SessionStageType } from "core/session/model";
 import * as controls from "./controls";
 import * as userActions from "core/user/actions";
 import { UserDTO } from "core/user/model";
-import { GameResultDTO, GameStateDTO } from "prefabs/game/model";
+import { GameDTO, GameResultDTO, GameStateDTO } from "prefabs/game/model";
 import { TransactionDTO, TransactionPartyType } from "core/transaction/model";
 import * as transactionActions from "core/transaction/actions";
 
 // #start User region
-export async function connectUser(id: SessionDTO["_id"], userId) {
+export async function connectUser(
+  id: SessionDTO["_id"],
+  userId,
+  params = null
+) {
   const [error, session] = await controls.findById(id);
 
   if (error || !userId) {
@@ -27,7 +31,12 @@ export async function connectUser(id: SessionDTO["_id"], userId) {
   const nextUsers = users.slice();
   nextUsers.push(userId);
 
-  const updated = await controls.updateOne(id, { users: nextUsers });
+  const state = session.state || {};
+
+  const prevState = state[userId] || {};
+  state[userId] = { ...prevState, ...params };
+
+  const updated = await controls.updateOne(id, { users: nextUsers, state });
 
   await userActions.addSession(userId, id);
 
@@ -41,11 +50,15 @@ export async function removeUser(id: SessionDTO["_id"], userId) {
     return Promise.reject(error || "Invalid data");
   }
 
-  const { users = [] } = session;
+  const { users = [], state } = session;
+
+  if (state?.users && state?.users[userId]) {
+    delete state.users[userId];
+  }
 
   const nextUsers = users.filter((it) => it !== userId);
 
-  return controls.updateOne(id, { users: nextUsers });
+  return controls.updateOne(id, { users: nextUsers, state });
 }
 
 export async function publishGame(id: SessionDTO["_id"]) {
@@ -55,33 +68,207 @@ export async function publishGame(id: SessionDTO["_id"]) {
 export async function setUserOffer(
   sessionId: SessionDTO["_id"],
   userId: UserDTO["_id"],
+  value: number,
+  autoStart = false
+) {
+  if (!userId) {
+    return Promise.reject("Invalid user");
+  }
+
+  const user = await userActions.findUser({ _id: userId }).catch((err) => null);
+
+  if (!user) {
+    return Promise.reject("Invalid user");
+  }
+
+  if (value && user.assets < value) {
+    return Promise.reject("Not enough assets");
+  }
+
+  const [error, session] = await controls.findById(sessionId);
+
+  if (error) {
+    return Promise.reject(error || "Invalid data");
+  }
+
+  if (
+    ![SessionStageType.Draft, SessionStageType.Lobby].includes(session.stage)
+  ) {
+    return Promise.reject("Bets are not accepted anymore");
+  }
+
+  // todo: validate user in game
+  // todo: validate available user assets
+
+  const usersSessionState = session.state.users || {};
+
+  const usersStatePayload: GameDTO["state"]["users"] = session.users.reduce(
+    (accum, userId) => {
+      accum[userId] = {
+        value: null,
+        ...usersSessionState[userId],
+      };
+
+      return accum;
+    },
+    {}
+  );
+
+  Object.entries(usersStatePayload).forEach(([id, state]) => {
+    if (id === userId) {
+      usersStatePayload[id] = {
+        ...usersStatePayload[id],
+        value,
+      };
+    } else if (value != null) {
+      usersStatePayload[id] = {
+        ...usersStatePayload[id],
+        value: state.value !== value ? null : value,
+      };
+    }
+  });
+
+  const statePayload: GameStateDTO = {
+    ...session.state,
+    offer: value || session.state?.offer || 0,
+    users: usersStatePayload,
+  };
+
+  const [updateError, updated] = await controls
+    .updateOne(sessionId, { state: statePayload })
+    .then((res) => {
+      return [null, res];
+    })
+    .catch((error) => {
+      return [error, null];
+    });
+
+  if (updateError) {
+    return Promise.reject(updateError);
+  }
+
+  if (!autoStart) {
+    return updated;
+  }
+
+  return startOnReady(updated).catch((error) => {
+    console.log("autostart error", error);
+    return updated;
+  });
+}
+
+export async function startOnReady(game: GameDTO) {
+  // const { state, users, stage } = game;
+
+  // if (![SessionStageType.Draft, SessionStageType.Lobby].includes(stage)) {
+  //   return game;
+  // }
+
+  // const usersMap = users.reduce((accum, userId) => {
+  //   accum[userId] = { value: null };
+
+  //   return accum;
+  // }, {});
+
+  // const allReady = Object.values(usersMap).every(({ ready }) => ready);
+
+  return startGame(game._id);
+}
+
+export async function setUserScore(
+  sessionId: SessionDTO["_id"],
+  userId: UserDTO["_id"],
   value: number
 ) {
   const [error, session] = await controls.findById(sessionId);
 
-  if (error || !userId || !value) {
+  if (error || !userId) {
     return Promise.reject(error || "Invalid data");
   }
 
   // todo: validate user in game
   // todo: validate available user assets
 
-  const { state } = session;
+  const { state, stage } = session;
+
+  if (![SessionStageType.Active].includes(session.stage)) {
+    return Promise.reject("Session is not active");
+  }
+
+  if (stage === SessionStageType.Close) {
+    return session;
+  }
 
   const usersStatePayload = state?.users || {};
+  const currentState = usersStatePayload[userId];
 
-  usersStatePayload[userId] = {
-    ...usersStatePayload[userId],
-    value,
-  };
+  const nextScore = Number(value) || 0;
 
-  const statePayload: GameStateDTO = {
-    ...state,
-    offer: value,
-    users: usersStatePayload,
-  };
+  let updated = session;
 
-  return controls.updateOne(sessionId, { state: statePayload });
+  if (currentState?.score !== nextScore) {
+    usersStatePayload[userId] = {
+      ...currentState,
+      score: nextScore,
+    };
+
+    const statePayload: GameStateDTO = {
+      ...state,
+      users: usersStatePayload,
+    };
+
+    updated = await controls.updateOne(sessionId, { state: statePayload });
+  }
+
+  const scoreTable = Object.entries(updated.state.users).reduce(
+    (acc, [id, { score }]) => {
+      const hasScore = score != null;
+
+      if (acc.ok) {
+        acc.ok = hasScore;
+      }
+
+      acc.users[id] = { score };
+
+      if (hasScore) {
+        acc.maxScore = Math.max(acc.maxScore, score);
+      }
+
+      return acc;
+    },
+    { users: {}, ok: true, maxScore: 0 }
+  );
+
+  const allSet = scoreTable.ok;
+
+  if (!allSet) {
+    return updated;
+  }
+
+  const winners = Object.entries(scoreTable.users)
+    .filter(([id, { score }]: any) => {
+      return score === scoreTable.maxScore;
+    })
+    .map(([id]) => {
+      return id;
+    });
+
+  return resolveGame(sessionId, winners);
+}
+
+export async function discardGame(id: SessionDTO["_id"]) {
+  const [error, session] = await controls.findById(id);
+
+  if (error) {
+    return Promise.reject(error);
+  }
+
+  const { stage } = session;
+  if (![SessionStageType.Draft, SessionStageType.Lobby].includes(stage)) {
+    return Promise.reject("Game can't be discarded");
+  }
+
+  return controls.updateOne(id, { stage: SessionStageType.Reject });
 }
 
 export async function startGame(id: SessionDTO["_id"]) {
@@ -186,18 +373,15 @@ export async function startRound(id: SessionDTO["_id"]) {
   return controls.updateOne(id, { state: statePayload });
 }
 
-export async function endRound(
-  id: SessionDTO["_id"],
-  winners: UserDTO["_id"][]
-) {
+export async function endRound(id: SessionDTO["_id"]) {
   const [error, session] = await controls.findById(id);
 
-  if (error || !winners?.length) {
+  if (error) {
     return Promise.reject(error || "Invalid data");
   }
 
   const { stage, state, config } = session;
-  const { rounds, users } = state;
+  const { rounds } = state;
 
   if (![SessionStageType.Active].includes(stage)) {
     return Promise.reject("Game is not active");
@@ -209,6 +393,32 @@ export async function endRound(
 
   const currentRoundIndex = rounds.length - 1;
   const currentRound = rounds[currentRoundIndex];
+
+  if (!currentRound.state) {
+    currentRound.state = {
+      users: {},
+    };
+  }
+
+  const usersState = state.users;
+
+  const winners = [];
+
+  const sorted = Object.entries(usersState).sort((a, b) => {
+    return b[1].score - a[1].score;
+  });
+  const maxScore = sorted[0][1].score;
+  sorted.forEach(([id, data]) => {
+    if (maxScore === data.score) {
+      winners.push(id);
+    }
+
+    currentRound.state.users[id] = {
+      score: data.score,
+    };
+
+    state.users[id].score = null;
+  });
 
   currentRound.winners = winners;
 
@@ -243,9 +453,6 @@ export async function endGame(id: SessionDTO["_id"]) {
     return Promise.reject(error || "Invalid data");
   }
 
-  // todo: calculate results
-  // todo: create reward transaction(s)
-
   const { title, state, users, stage } = session;
 
   if (![SessionStageType.Active].includes(stage)) {
@@ -253,8 +460,6 @@ export async function endGame(id: SessionDTO["_id"]) {
   }
 
   const { rounds } = state;
-
-  const offer = state.offer;
 
   const userCounter: Record<UserDTO["_id"], number> = {};
 
@@ -278,17 +483,39 @@ export async function endGame(id: SessionDTO["_id"]) {
       return counter === maxCounter;
     })
     .map(([userId]) => userId);
+
+  return resolveGame(session._id, gameWinners);
+}
+
+export async function resolveGame(
+  id: SessionDTO["_id"],
+  winners: UserDTO["_id"][]
+) {
+  const [error, session] = await controls.findById(id);
+
+  if (error) {
+    return Promise.reject(error || "Invalid data");
+  }
+
+  const { title, state, stage, users } = session;
+
+  if (stage !== SessionStageType.Active) {
+    return Promise.reject("Invalid session stage");
+  }
+
+  const offer = state.offer;
+
   const valueTotal = users.length * offer;
-  const valuePerWinner = valueTotal / gameWinners.length;
+  const valuePerWinner = valueTotal / winners.length;
 
   const resultPayload: GameResultDTO = {
-    winners: gameWinners,
+    winners: winners,
     valueTotal,
     valuePerWinner,
   };
 
   const rewardTransactions: TransactionDTO[] = await Promise.all(
-    gameWinners.map((userId) => {
+    winners.map((userId) => {
       return transactionActions.createTransaction({
         value: valuePerWinner,
         sourceId: id,
@@ -299,10 +526,6 @@ export async function endGame(id: SessionDTO["_id"]) {
       });
     })
   );
-
-  // const transactionsPayload = transactions.concat(
-  //   rewardTransactions.map(({ _id }) => _id)
-  // );
 
   return controls.updateOne(id, {
     stage: SessionStageType.Close,

@@ -5,6 +5,7 @@ import { UserDTO } from "core/user/model";
 
 export interface SessionPayloadDTO {
   title: string;
+  tag?: string;
   type: SessionType;
   visibility?: SessionVisibilityType;
   ownerId: UserDTO["_id"];
@@ -14,6 +15,7 @@ export interface SessionPayloadDTO {
 
 export interface SessionDTO {
   _id: string;
+  tag: string;
   title: string;
   details?: string;
   type: SessionType;
@@ -29,8 +31,9 @@ export interface SessionDTO {
 
 export enum SessionType {
   Draft = 0,
-  Wager = 1,
+  Bet = 1,
   Game = 2,
+  Quiz = 3
 }
 
 export enum SessionVisibilityType {
@@ -44,6 +47,7 @@ export enum SessionStageType {
   Lobby = 1,
   Active = 2,
   Close = 3,
+  Reject = 4
 }
 
 export const modelName = "Session";

@@ -1,6 +1,10 @@
 import { RepositorySchema } from "core/repository/model";
 
 const schema: RepositorySchema = {
+  tag: {
+    type: "string",
+    unique: true,
+  },
   visibility: {
     type: "number",
     default: 0,
@@ -23,6 +27,9 @@ const schema: RepositorySchema = {
   stage: {
     type: "number",
     default: 0,
+  },
+  created: {
+    type: "string",
   },
   users: {
     type: "array",

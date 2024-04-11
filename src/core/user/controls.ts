@@ -1,5 +1,6 @@
 import { UserDTO, UserPayloadDTO } from "core/user/model";
 import repository from "./repository";
+import { emitEvent } from "core/broadcast/oberver";
 
 export async function create(payload: UserPayloadDTO): Promise<UserDTO> {
   return repository.create(payload);
@@ -18,7 +19,13 @@ export async function update(filter: any, payload: any): Promise<any> {
 }
 
 export async function updateOne(filter: any, payload: any): Promise<UserDTO> {
-  return repository.findOneAndUpdate(filter, payload);
+  const user = await repository.findOneAndUpdate(filter, payload);
+
+  if (user) {
+    emitEvent('user', user._id, user);
+  }
+
+  return user;
 }
 
 export async function addToArray(

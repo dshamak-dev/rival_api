@@ -2,7 +2,8 @@ import mongoose from "mongoose";
 import { RepositorySchema } from "core/repository/model";
 
 export function createRepositoryModel(name: string, schema: RepositorySchema) {
-  const _model = mongoose.models[name] || mongoose.model(name, parseSchema(schema));
+  const _model =
+    mongoose.models[name] || mongoose.model(name, parseSchema(schema));
 
   return _model;
 }
@@ -13,15 +14,15 @@ function parseSchema(schema: RepositorySchema): mongoose.Schema {
   Object.entries(schema).forEach(([key, { type, ...other }]) => {
     payload[key] = {
       ...other,
-      type: parseSchemaType(type)
-    }
+      type: parseSchemaType(type),
+    };
   });
 
   return new mongoose.Schema(payload);
 }
 
 function parseSchemaType(type: string) {
-  switch(type) {
+  switch (type) {
     case "string": {
       return String;
     }

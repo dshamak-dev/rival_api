@@ -1,6 +1,7 @@
 {
   "swaggerDefinition": {
     "restapi": "3.0.0",
+    "jsonEditor": true,
     "info": {
       "title": "Rival API",
       "version": "0.0.1",

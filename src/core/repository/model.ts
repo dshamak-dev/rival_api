@@ -26,7 +26,11 @@ export class Repository {
   }
 
   create(payload) {
-    return this.model?.create(payload);
+    const body = {
+      ...payload,
+    };
+
+    return this.model?.create(body);
   }
 
   find(query) {
@@ -54,6 +58,42 @@ export class Repository {
   }
 
   addToArray(filter: any, field: string, items: any[]) {
-    return this.model?.findOneAndUpdate(filter, { $addToSet: { [field]: { $each: items } } }, { new: true });
+    return this.model?.findOneAndUpdate(
+      filter,
+      { $addToSet: { [field]: { $each: items } } },
+      { new: true }
+    );
+  }
+
+  removeFromArray(filter: any, field: string, item: any) {
+    return this.model?.findOneAndUpdate(
+      filter,
+      { $pull: { [field]: item } },
+      { new: true }
+    );
+  }
+
+  setToObject(filter: any, path: string, { key, value }) {
+    return this.model?.findOneAndUpdate(
+      filter,
+      { $set: { [`${path}.${key}`]: value } },
+      { upsert: true, new: true }
+    );
+  }
+
+  incrementNumber(filter: any, field: string, value: number) {
+    return this.model?.findOneAndUpdate(
+      filter,
+      { $inc: { [field]: value } },
+      { new: true }
+    );
+  }
+
+  decrementNumber(filter: any, field: string, value: number) {
+    return this.model?.findOneAndUpdate(
+      filter,
+      { $inc: { [field]: -value } },
+      { new: true }
+    );
   }
 }

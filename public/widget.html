@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rival Widget</title>
+  </head>
+  <body>
+    <main id="root"></main>
+    <script>
+      const query = new URLSearchParams(location.search);
+      const template = query.get("template");
+      const rootEl = document.getElementById("root");
+
+      connectScript({ template });
+
+      function connectScript(props) {
+        const widgetScript = document.createElement("script");
+        widgetScript.src = `/client.js`;
+
+        Object.entries(props).forEach(([key, value]) => {
+          widgetScript.setAttribute(`data-${key}`, value);
+        });
+
+        widgetScript.onload = () => {
+          start();
+        };
+
+        document.body.append(widgetScript);
+      }
+
+      function start() {
+        const query = new URLSearchParams(location.search);
+        const gameId = query.get("id");
+        const playerId = query.get("player");
+
+        if (!gameId || !playerId) {
+          return;
+        }
+
+        try {
+          const client = window.RIVALS.create();
+          client.connect(gameId, playerId, false);
+
+          rootEl.innerHTML = '';
+          createButton('subscribe', () => subscribeGame(client));
+          createButton('stop listen', () => stopListenGame(client));
+          createButton('start', () => startGame(client));
+          createButton('reject', () => rejectGame(client));
+        } catch (error) {}
+      }
+
+      function startGame(client) {
+        client.start();
+      }
+
+      function subscribeGame(client) {
+        client.listen();
+      }
+
+      function stopListenGame(client) {
+        client.stopListening();
+      }
+
+      function rejectGame(client) {
+        client.discard();
+      }
+
+      function createButton(content, callback) {
+        const btn = document.createElement('button');
+        btn.innerHTML = content;
+
+        btn.onclick = callback;
+
+        rootEl.append(btn);
+      }
+    </script>
+  </body>
+</html>
