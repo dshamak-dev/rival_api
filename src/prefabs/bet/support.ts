@@ -63,7 +63,7 @@ export async function createBidTransactions(
       };
     }
   );
-  return deferPromises(transactionsPayload.map(createTransaction));
+  return deferPromises(transactionsPayload.map((it) => createTransaction(it)));
 }
 
 export function getWinners(session, answerOption) {
@@ -98,7 +98,7 @@ export async function createRewardTransactions(
       };
     }
   );
-  return deferPromises(transactionsPayload.map(createTransaction));
+  return deferPromises(transactionsPayload.map((it) => createTransaction(it)));
 }
 
 export function parse(session, targetUser = null) {
