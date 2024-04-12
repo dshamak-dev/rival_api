@@ -32,7 +32,8 @@ export enum TransactionPartyType {
   None = 0,
   User = 1,
   Session = 2,
-  Voucher = 3
+  Voucher = 3,
+  INTENT = 4
 }
 
 export const modelName = "Transaction";

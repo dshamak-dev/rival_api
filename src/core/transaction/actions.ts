@@ -27,11 +27,11 @@ export async function createVoucherTransaction(
     .catch((error) => [error, null]);
 
   if (!userId || error || !voucher) {
-    return Promise.reject(error || 'Invalid voucher');
+    return Promise.reject(error || "Invalid voucher");
   }
 
   if (voucher.users?.includes(userId)) {
-    return Promise.reject('Voucher already used');
+    return Promise.reject("Voucher already used");
   }
 
   const voucherId = voucher._id;
@@ -76,7 +76,8 @@ export async function createTransferTransaction(
 }
 
 export async function createTransaction(
-  payload: TransactionPayloadDTO
+  payload: TransactionPayloadDTO,
+  autoResolve = true
 ): Promise<TransactionDTO> {
   const transaction = await repository.create(payload);
 
@@ -87,7 +88,11 @@ export async function createTransaction(
     linkTransactionWithParty(_id, targetId, targetType),
   ]);
 
-  return tryResolveTransaction(transaction);
+  if (autoResolve) {
+    return tryResolveTransaction(transaction);
+  }
+
+  return transaction;
 }
 
 export async function linkTransactionWithParty(
@@ -137,7 +142,7 @@ export async function tryResolveTransaction(
           return res != null;
         })
         .catch((err) => {
-          console.log('voucher error', err);
+          console.log("voucher error", err);
 
           return false;
         });
@@ -188,15 +193,14 @@ export async function confirmVoucherTransaction(
 export async function confirmTransferTransaction(
   transaction: TransactionDTO
 ): Promise<TransactionDTO> {
-  const ok = await Promise.all([sendAssets(
-    transaction.targetId,
-    transaction.targetType,
-    transaction.value
-  ), removeAssets(
-    transaction.sourceId,
-    transaction.sourceType,
-    transaction.value
-  )]).then((results) => results.every(res => res));
+  const ok = await Promise.all([
+    sendAssets(transaction.targetId, transaction.targetType, transaction.value),
+    removeAssets(
+      transaction.sourceId,
+      transaction.sourceType,
+      transaction.value
+    ),
+  ]).then((results) => results.every((res) => res));
 
   if (!ok) {
     return transaction;
